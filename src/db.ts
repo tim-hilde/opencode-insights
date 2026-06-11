@@ -172,7 +172,7 @@ export function getCostPer1k(db: Database, sessionIds: string[]): CostPer1kRow[]
   `).all(...sessionIds)
   return rows.map(r => ({
     model: r.model,
-    costPer1kTokens: r.tokens > 0 ? (r.cost / r.tokens) * 1000 : 0,
+    costPer1kTokens: (r.cost / r.tokens) * 1000,
   }))
 }
 
