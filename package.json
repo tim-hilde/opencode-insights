@@ -1,0 +1,19 @@
+{
+  "name": "opencode-insights",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "smoke": "bun run scripts/smoke-db.ts"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "*"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "file:/Users/tim/.opencode/node_modules/@opencode-ai/plugin",
+    "@opencode-ai/sdk": "file:/Users/tim/.opencode/node_modules/@opencode-ai/sdk",
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}
