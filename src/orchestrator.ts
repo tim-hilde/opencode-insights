@@ -31,62 +31,63 @@ export async function runInsights(
 ): Promise<InsightsResult> {
   const dbPath = deps.dbPath ?? resolveDbPath(deps.stateDir)
   const db = openDb(dbPath)
+  try {
+    const sessionIds = filterSessions(db, {
+      since: Date.now() - config.days * 86400000,
+      projectDir: config.projectOnly ? deps.projectDir : undefined,
+    })
 
-  const sessionIds = filterSessions(db, {
-    since: Date.now() - config.days * 86400000,
-    projectDir: config.projectOnly ? deps.projectDir : undefined,
-  })
+    const stats = aggregateAll(db, sessionIds)
 
-  const stats = aggregateAll(db, sessionIds)
+    const cache = new FacetCache(join(deps.stateDir, "insights", "facets"))
+    if (config.force) cache.clear()
 
-  const cache = new FacetCache(join(deps.stateDir, "insights", "facets"))
-  if (config.force) cache.clear()
+    const facets = await extractFacets(
+      db,
+      deps.client,
+      sessionIds,
+      config,
+      cache,
+      (done, total) => onProgress?.("facets", done, total),
+    )
 
-  const facets = await extractFacets(
-    db,
-    deps.client,
-    sessionIds,
-    config,
-    cache,
-    (done, total) => onProgress?.("facets", done, total),
-  )
+    onProgress?.("aggregates")
+    const aggregates = await runAggregateAnalysis(facets, stats, config, deps.client)
 
-  onProgress?.("aggregates")
-  const aggregates = await runAggregateAnalysis(facets, stats, config, deps.client)
+    onProgress?.("at_a_glance")
+    const atAGlance = await generateAtAGlance(aggregates, stats, config, deps.client)
 
-  onProgress?.("at_a_glance")
-  const atAGlance = await generateAtAGlance(aggregates, stats, config, deps.client)
+    const insightsJson = {
+      generatedAt: new Date().toISOString(),
+      config: { model: config.model, days: config.days },
+      stats,
+      sessionIds,
+      facets: Object.fromEntries(facets),
+      aggregates,
+      atAGlance,
+    }
 
-  const insightsJson = {
-    generatedAt: new Date().toISOString(),
-    config: { model: config.model, days: config.days },
-    stats: { ...stats, dateRange: stats.dateRange },
-    sessionIds,
-    facets: Object.fromEntries(facets),
-    aggregates,
-    atAGlance,
-  }
+    const html = generateReport(
+      { stats, facets, aggregates, atAGlance, config, generatedAt: Date.now() },
+      JSON.stringify(insightsJson, null, 2),
+    )
 
-  const html = generateReport(
-    { stats, facets, aggregates, atAGlance, config, generatedAt: Date.now() },
-    JSON.stringify(insightsJson, null, 2),
-  )
+    const reportPath = config.output
+    const jsonPath = config.output.replace(/\.html$/, ".json")
 
-  const reportPath = config.output
-  const jsonPath = config.output.replace(/\.html$/, ".json")
+    mkdirSync(dirname(reportPath), { recursive: true })
+    writeFileSync(reportPath, html, "utf-8")
+    writeFileSync(jsonPath, JSON.stringify(insightsJson, null, 2), "utf-8")
 
-  mkdirSync(dirname(reportPath), { recursive: true })
-  writeFileSync(reportPath, html, "utf-8")
-  writeFileSync(jsonPath, JSON.stringify(insightsJson, null, 2), "utf-8")
-
-  db.close()
-
-  return {
-    reportPath,
-    jsonPath,
-    atAGlance,
-    sessionCount: sessionIds.length,
-    analyzedCount: facets.size,
-    totalCost: stats.totalCost,
+    return {
+      reportPath,
+      jsonPath,
+      atAGlance,
+      sessionCount: sessionIds.length,
+      analyzedCount: facets.size,
+      totalCost: stats.totalCost,
+    }
+  } finally {
+    db.close()
   }
 }
