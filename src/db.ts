@@ -9,7 +9,7 @@ export function resolveDbPath(stateDir?: string): string {
   if (process.env.OPENCODE_DB) return process.env.OPENCODE_DB
   if (stateDir) return `${stateDir}/opencode.db`
   const xdg = process.env.XDG_DATA_HOME ?? `${process.env.HOME}/.local/share`
-  return `${xdg}/opencode.db`
+  return `${xdg}/opencode/opencode.db`
 }
 
 export function listSessionIds(db: Database, since: number): string[] {
@@ -111,13 +111,13 @@ export function getToolErrorRates(db: Database, sessionIds: string[]): ToolError
   const placeholders = sessionIds.map(() => "?").join(",")
   const rows = db.query<{ tool: string; total: number; errors: number }, string[]>(`
     SELECT
-      json_extract(data, '$.tool.name') as tool,
+      json_extract(data, '$.tool') as tool,
       COUNT(*) as total,
       SUM(CASE WHEN json_extract(data, '$.state.status') = 'error' THEN 1 ELSE 0 END) as errors
     FROM part
     WHERE session_id IN (${placeholders})
       AND json_extract(data, '$.type') = 'tool'
-      AND json_extract(data, '$.tool.name') IS NOT NULL
+      AND json_extract(data, '$.tool') IS NOT NULL
     GROUP BY tool
     ORDER BY total DESC
   `).all(...sessionIds)
@@ -246,10 +246,10 @@ export function getSessionMeta(db: Database, sessionId: string): SessionMeta | n
   const assistantMsgCount = msgCounts.find(r => r.role === "assistant")?.cnt ?? 0
 
   const toolRows = db.query<{ tool: string; cnt: number }, [string]>(`
-    SELECT json_extract(data, '$.tool.name') as tool, COUNT(*) as cnt
+    SELECT json_extract(data, '$.tool') as tool, COUNT(*) as cnt
     FROM part WHERE session_id = ?
       AND json_extract(data, '$.type') = 'tool'
-      AND json_extract(data, '$.tool.name') IS NOT NULL
+      AND json_extract(data, '$.tool') IS NOT NULL
     GROUP BY tool
   `).all(sessionId)
   const toolCounts: Record<string, number> = {}

@@ -48,9 +48,10 @@ export function reconstructTranscript(db: Database, sessionId: string): string {
 
     if (part.type === "text" && part.text) {
       lines.push(`[${role}]: ${part.text}`)
-    } else if (part.type === "tool" && part.tool?.name) {
+    } else if (part.type === "tool" && part.tool) {
+      const toolName: string = typeof part.tool === "string" ? part.tool : part.tool.name ?? "unknown"
       const status: string = part.state?.status ?? "unknown"
-      lines.push(`[assistant]: Used ${part.tool.name} (${status})`)
+      lines.push(`[assistant]: Used ${toolName} (${status})`)
     } else if (part.type === "reasoning" && part.text) {
       lines.push(`[assistant]: (reasoning) ${String(part.text).slice(0, 200)}`)
     }
