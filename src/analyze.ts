@@ -93,12 +93,14 @@ export async function extractFacets(
 
   const uncached: string[] = []
   for (const id of sessionIds) {
-    if (!config.force && cache.has(id)) {
+    if (!config.force) {
       const facet = cache.get(id)
-      if (facet) result.set(id, facet)
-    } else {
-      uncached.push(id)
+      if (facet) {
+        result.set(id, facet)
+        continue
+      }
     }
+    uncached.push(id)
   }
 
   const toProcess = config.force ? uncached : uncached.slice(0, MAX_NEW_SESSIONS)
@@ -205,7 +207,7 @@ export async function runAggregateAnalysis(
   const rollupData = buildRollupData(facets, stats)
   const results: Record<string, unknown> = {}
 
-  await mapLimit(AGGREGATE_PROMPTS, 2, async ({ key, builder }) => {
+  await mapLimit(AGGREGATE_PROMPTS, config.concurrency, async ({ key, builder }) => {
     try {
       const prompt = builder(rollupData)
       const raw = await runLlm(client, { model: config.model, prompt })
