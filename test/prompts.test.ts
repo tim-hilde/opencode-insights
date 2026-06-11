@@ -97,6 +97,27 @@ describe("aggregate prompt builders", () => {
     expect(p).toContain("ambitious_workflows")
   })
 
+  it("buildFrictionPrompt ends with JSON_SUFFIX", () => {
+    const p = buildFrictionPrompt({})
+    expect(p).toContain("RESPOND WITH ONLY A VALID JSON OBJECT")
+    expect(p).toContain("No markdown")
+  })
+
+  it("buildSuggestionsPrompt ends with JSON_SUFFIX", () => {
+    const p = buildSuggestionsPrompt({})
+    expect(p).toContain("No markdown")
+  })
+
+  it("buildAtAGlancePrompt ends with JSON_SUFFIX", () => {
+    const p = buildAtAGlancePrompt({}, {})
+    expect(p).toContain("No markdown")
+  })
+
+  it("buildAtAGlancePrompt uses second person", () => {
+    const p = buildAtAGlancePrompt({}, {})
+    expect(p).toContain("second person")
+  })
+
   it("buildHorizonPrompt returns string with JSON_SUFFIX", () => {
     const p = buildHorizonPrompt(sampleData)
     expect(p).toContain("RESPOND WITH ONLY A VALID JSON OBJECT")

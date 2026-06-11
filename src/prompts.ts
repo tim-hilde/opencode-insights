@@ -42,6 +42,7 @@ CRITICAL GUIDELINES:
    - "ok, now let's..." (continuing without complaint) → likely_satisfied
    - "that's not right", "try again" → dissatisfied
    - "this is broken", "I give up" → frustrated
+   - no clear signals either way → neutral
 
 3. **friction_counts**: Be specific about what went wrong.
 ${frictionStr}
@@ -160,7 +161,9 @@ RESPOND WITH ONLY A VALID JSON OBJECT:
   ]
 }
 
-Include 3 friction categories with 2 examples each.`
+  Include 3 friction categories with 2 examples each.
+
+${JSON_SUFFIX}`
 }
 
 export function buildSuggestionsPrompt(data: unknown): string {
@@ -209,7 +212,9 @@ RESPOND WITH ONLY A VALID JSON OBJECT:
   "workflow_patterns": [
     {"pattern": "string", "benefit": "string", "how_to": "string", "copyable_prompt": "string"}
   ]
-}`
+}
+
+${JSON_SUFFIX}`
 }
 
 export function buildToolHealthPrompt(data: unknown): string {
@@ -259,6 +264,8 @@ export function buildAtAGlancePrompt(allInsights: unknown, statsSummary: unknown
   const statsStr = JSON.stringify(statsSummary, null, 2)
   return `You're writing an "At a Glance" summary for an OpenCode usage insights report. The goal is to help users understand their usage and improve how they use OpenCode, especially as models improve.
 
+${TONE}
+
 Use this 4-part structure:
 
 1. **whats_working** — What is the user's unique style of interacting with the agent and what are some impactful things they've done? Don't be fluffy or overly complimentary. Don't focus on tool calls.
@@ -283,5 +290,7 @@ RESPOND WITH ONLY A VALID JSON OBJECT:
   "whats_hindering": "string (split: (a) agent's fault ... (b) user-side ...)",
   "quick_wins": "string",
   "ambitious_workflows": "string"
-}`
+}
+
+${JSON_SUFFIX}`
 }
