@@ -3,7 +3,7 @@ import type { AggregatedStats } from "./types.ts"
 import type { AgentModelRow } from "./db.ts"
 import {
   listSessionIds,
-  getSessionMeta,
+  listSessionIdsWithDir,
   getTokenTotals,
   getByAgentModel,
   getToolErrorRates,
@@ -21,15 +21,15 @@ export interface FilterOptions {
 
 export function filterSessions(db: Database, opts: FilterOptions = {}): string[] {
   const since = opts.since ?? Date.now() - 30 * 86400 * 1000
-  const ids = listSessionIds(db, since)
-  if (!opts.projectDir) return ids
-  // N+1: each getSessionMeta call fires 4 queries. Acceptable for typical use
-  // (projects rarely exceed ~200 sessions). A single JOIN query would be faster
-  // for large DBs — optimize if this becomes a bottleneck.
-  return ids.filter(id => {
-    const meta = getSessionMeta(db, id)
-    return meta?.projectDir?.startsWith(opts.projectDir!) ?? false
-  })
+
+  if (!opts.projectDir) {
+    return listSessionIds(db, since)
+  }
+
+  const rows = listSessionIdsWithDir(db, since)
+  return rows
+    .filter(r => r.directory.startsWith(opts.projectDir!))
+    .map(r => r.id)
 }
 
 export function reconstructTranscript(db: Database, sessionId: string): string {

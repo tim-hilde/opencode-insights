@@ -19,7 +19,6 @@ export interface LlmCallOptions {
   model: { providerID: string; modelID: string }
   prompt: string
   system?: string
-  abort?: AbortSignal
 }
 
 export async function runLlm(client: LlmClient, opts: LlmCallOptions): Promise<string> {

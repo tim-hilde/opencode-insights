@@ -23,6 +23,17 @@ export function listSessionIds(db: Database, since: number): string[] {
   return rows.map(r => r.id)
 }
 
+export function listSessionIdsWithDir(db: Database, since: number): Array<{ id: string; directory: string }> {
+  return db.query<{ id: string; directory: string }, [number]>(`
+    SELECT id, directory
+    FROM session
+    WHERE parent_id IS NULL
+      AND title NOT LIKE '[insights]%'
+      AND time_created >= ?
+    ORDER BY time_created DESC
+  `).all(since)
+}
+
 export interface TokenTotals {
   totalCost: number
   totalTokensInput: number
