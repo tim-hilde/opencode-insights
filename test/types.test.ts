@@ -19,6 +19,27 @@ describe("constants", () => {
     expect(FRICTION_CATEGORIES.length).toBe(12)
   })
 
+  test("GOAL_CATEGORIES contains all expected values", () => {
+    const expected = [
+      "debug_investigate",
+      "implement_feature",
+      "fix_bug",
+      "write_script_tool",
+      "refactor_code",
+      "configure_system",
+      "create_pr_commit",
+      "analyze_data",
+      "understand_codebase",
+      "write_tests",
+      "write_docs",
+      "deploy_infra",
+      "warmup_minimal",
+    ] as const
+    for (const cat of expected) {
+      expect(GOAL_CATEGORIES).toContain(cat)
+    }
+  })
+
   test("FRICTION_CATEGORIES includes all required values", () => {
     const required = [
       "misunderstood_request",
@@ -51,7 +72,7 @@ describe("constants", () => {
 
 describe("type compatibility", () => {
   test("SessionFacet accepts valid literal object", () => {
-    const facet: SessionFacet = {
+    const _facet = {
       sessionId: "abc",
       underlyingGoal: "fix a bug",
       goalCategories: { fix_bug: 1, debug_investigate: 0 },
@@ -63,12 +84,11 @@ describe("type compatibility", () => {
       frictionDetail: "none",
       primarySuccess: "correct_code_edits",
       briefSummary: "Fixed the bug successfully.",
-    }
-    expect(facet.sessionId).toBe("abc")
+    } satisfies SessionFacet
   })
 
   test("SessionMeta accepts valid literal object", () => {
-    const meta: SessionMeta = {
+    const _meta = {
       id: "sess-1",
       title: "Test Session",
       projectDir: "/home/user/project",
@@ -88,12 +108,11 @@ describe("type compatibility", () => {
       modelCounts: { "claude-3-5-haiku": 5 },
       startTime: 1700000000000,
       endTime: 1700000900000,
-    }
-    expect(meta.id).toBe("sess-1")
+    } satisfies SessionMeta
   })
 
   test("AggregatedStats accepts valid literal object", () => {
-    const stats: AggregatedStats = {
+    const _stats = {
       totalSessions: 10,
       analyzedSessions: 8,
       dateRange: { from: 1700000000000, to: 1700900000000 },
@@ -108,19 +127,17 @@ describe("type compatibility", () => {
       cacheEfficiency: [{ model: "claude-3-5-haiku", cacheRatio: 0.3 }],
       costPer1k: [{ model: "claude-3-5-haiku", costPer1kTokens: 0.01 }],
       agentDelegation: [{ parentAgent: "build", childAgent: "explore", count: 3 }],
-    }
-    expect(stats.totalSessions).toBe(10)
+    } satisfies AggregatedStats
   })
 
   test("InsightsConfig accepts valid literal object", () => {
-    const config: InsightsConfig = {
+    const _config = {
       model: { providerID: "anthropic", modelID: "claude-haiku-4-5" },
       days: 30,
       force: false,
       concurrency: 4,
       projectOnly: false,
       output: "insights.html",
-    }
-    expect(config.days).toBe(30)
+    } satisfies InsightsConfig
   })
 })

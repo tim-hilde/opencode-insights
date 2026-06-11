@@ -42,6 +42,13 @@ export type GoalCategory = (typeof GOAL_CATEGORIES)[number]
 export type FrictionCategory = (typeof FRICTION_CATEGORIES)[number]
 export type SatisfactionLevel = (typeof SATISFACTION_LEVELS)[number]
 
+/**
+ * Extracted facets from a single session transcript.
+ *
+ * Fields typed as `string` are free-text produced by LLM analysis.
+ * Fields typed as `Partial<Record<XCategory, number>>` have a fixed vocabulary defined
+ * by the corresponding constant arrays (GOAL_CATEGORIES, FRICTION_CATEGORIES, etc.).
+ */
 export interface SessionFacet {
   sessionId: string
   underlyingGoal: string
