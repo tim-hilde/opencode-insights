@@ -199,6 +199,30 @@ export function getAgentDelegation(db: Database, sessionIds: string[]): AgentDel
   `).all(...params)
 }
 
+export interface PartWithRole {
+  partData: string
+  role: string
+}
+
+export function getPartsWithMessages(db: Database, sessionId: string): PartWithRole[] {
+  return db.query<PartWithRole, [string]>(`
+    SELECT p.data as partData, json_extract(m.data, '$.role') as role
+    FROM part p
+    JOIN message m ON p.message_id = m.id
+    WHERE m.session_id = ?
+    ORDER BY p.time_created ASC, p.id ASC
+  `).all(sessionId)
+}
+
+export function getSessionDateRange(db: Database, sessionIds: string[]): { from: number; to: number } {
+  if (sessionIds.length === 0) return { from: 0, to: 0 }
+  const placeholders = sessionIds.map(() => "?").join(",")
+  const row = db.query<{ from_ts: number; to_ts: number }, string[]>(
+    `SELECT MIN(time_created) as from_ts, MAX(time_created) as to_ts FROM session WHERE id IN (${placeholders})`
+  ).get(...sessionIds)
+  return { from: row?.from_ts ?? 0, to: row?.to_ts ?? 0 }
+}
+
 export function getSessionMeta(db: Database, sessionId: string): SessionMeta | null {
   const session = db.query<{
     id: string; title: string; directory: string | null; parent_id: string | null
