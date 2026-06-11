@@ -67,7 +67,8 @@ export function createFixtureDb(): Database {
   db.run(`INSERT INTO message VALUES ('m3','s2',${now - 3 * day},${now - 3 * day},'${JSON.stringify({ role: "user", time: { created: now - 3 * day } })}')`)
   db.run(`INSERT INTO message VALUES ('m4','s2',${now - 3 * day + 1000},${now - 3 * day + 1000},'${JSON.stringify({ role: "assistant", agent: "explore", modelID: "claude-sonnet-4-5", providerID: "anthropic", tokens: { input: 800, output: 400, reasoning: 0, cache: { read: 100, write: 50 }, total: 1300 }, cost: 0.03 })}')`)
 
-  // Parts for s1: 2 tool parts (1 success, 1 error), 1 text part
+  // Parts for s1: user text part, 2 tool parts (1 success, 1 error), 1 assistant text part
+  db.run(`INSERT INTO part VALUES ('p0','m1','s1',${now - 5 * day - 100},${now - 5 * day - 100},'${JSON.stringify({ type: "text", text: "Please fix the login bug." })}')`)
   db.run(`INSERT INTO part VALUES ('p1','m2','s1',${now - 5 * day},${now - 5 * day},'${JSON.stringify({ type: "tool", tool: { name: "bash" }, state: { status: "completed", input: { command: "ls" } } })}')`)
   db.run(`INSERT INTO part VALUES ('p2','m2','s1',${now - 5 * day + 100},${now - 5 * day + 100},'${JSON.stringify({ type: "tool", tool: { name: "bash" }, state: { status: "error", input: { command: "bad cmd" } } })}')`)
   db.run(`INSERT INTO part VALUES ('p3','m2','s1',${now - 5 * day + 200},${now - 5 * day + 200},'${JSON.stringify({ type: "text", text: "I fixed the bug." })}')`)
