@@ -3,28 +3,52 @@ import { tool } from "@opencode-ai/plugin"
 import { DEFAULT_MODEL } from "./types.ts"
 import { runInsights } from "./orchestrator.ts"
 import type { InsightsConfig, InsightsModel } from "./types.ts"
-import { readFileSync, existsSync } from "fs"
+import { readFileSync, writeFileSync, existsSync } from "fs"
 import { join } from "path"
 
 interface PluginConfig {
-  model?: string
-  days?: number
-  concurrency?: number
+  // LLM used for all analysis calls. Format: "providerID/modelID".
+  // Haiku-class models are recommended — cheap and fast enough for JSON extraction.
+  model: string
+  // How many days of session history to analyse (default: 30).
+  days: number
+  // Max parallel LLM calls during facet extraction (default: 4).
+  concurrency: number
 }
 
-function readPluginConfig(configDir: string): PluginConfig {
+const DEFAULT_PLUGIN_CONFIG: PluginConfig = {
+  model: "anthropic/claude-haiku-4-5",
+  days: 30,
+  concurrency: 4,
+}
+
+function loadPluginConfig(configDir: string): PluginConfig {
   const path = join(configDir, "insights.json")
-  if (!existsSync(path)) return {}
+  if (!existsSync(path)) {
+    // First run — write defaults so the user can see and edit them.
+    try {
+      writeFileSync(
+        path,
+        JSON.stringify(DEFAULT_PLUGIN_CONFIG, null, 2) + "\n",
+        "utf-8",
+      )
+    } catch {
+      // Config dir might not be writable (CI, read-only mount). Silently continue.
+    }
+    return { ...DEFAULT_PLUGIN_CONFIG }
+  }
   try {
-    return JSON.parse(readFileSync(path, "utf-8")) as PluginConfig
+    const parsed = JSON.parse(readFileSync(path, "utf-8")) as Partial<PluginConfig>
+    // Merge with defaults so any missing keys still work.
+    return { ...DEFAULT_PLUGIN_CONFIG, ...parsed }
   } catch {
-    return {}
+    return { ...DEFAULT_PLUGIN_CONFIG }
   }
 }
 
 export const InsightsPlugin: Plugin = async (ctx) => {
   const initPaths = (await ctx.client.path.get() as { data: { config: string; state: string } }).data
-  const pluginConfig = readPluginConfig(initPaths.config)
+  const pluginConfig = loadPluginConfig(initPaths.config)
 
   return {
     async config(cfg) {
@@ -55,20 +79,16 @@ export const InsightsPlugin: Plugin = async (ctx) => {
           project: tool.schema.boolean().default(false).optional(),
         },
         async execute(args, toolCtx) {
-          // model precedence: --model arg > insights.json config > default
-          const model: InsightsModel = args.model
-            ? parseModel(args.model)
-            : pluginConfig.model
-              ? parseModel(pluginConfig.model)
-              : DEFAULT_MODEL
+          // model precedence: --model arg > insights.json config
+          const model: InsightsModel = parseModel(args.model ?? pluginConfig.model)
 
           const stateDir = initPaths.state
 
           const config: InsightsConfig = {
             model,
-            days: args.days ?? pluginConfig.days ?? 30,
+            days: args.days ?? pluginConfig.days,
             force: args.force ?? false,
-            concurrency: pluginConfig.concurrency ?? 4,
+            concurrency: pluginConfig.concurrency,
             projectOnly: args.project ?? false,
             output: args.output ?? `${stateDir}/insights/report-${dateStamp()}.html`,
           }

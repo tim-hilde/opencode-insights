@@ -40,7 +40,7 @@ In the opencode TUI:
 
 ## Configuration
 
-Create `~/.config/opencode/insights.json` to set defaults:
+On the first run, the plugin creates `~/.config/opencode/insights.json` with defaults:
 
 ```json
 {
@@ -50,7 +50,21 @@ Create `~/.config/opencode/insights.json` to set defaults:
 }
 ```
 
-All fields are optional. Precedence: `--model` arg > `insights.json` > built-in default (`anthropic/claude-haiku-4-5`).
+Edit this file to change the defaults for every `/insights` run.
+
+| Field | Default | What it does |
+|---|---|---|
+| `model` | `anthropic/claude-haiku-4-5` | LLM used for all analysis calls. Format: `providerID/modelID`. Haiku-class models are recommended — they're fast, cheap, and sufficient for JSON extraction. Use a smarter model if you want richer analysis at higher cost. |
+| `days` | `30` | How many days of session history to include. |
+| `concurrency` | `4` | Max parallel LLM calls during per-session facet extraction. Increase to speed up the first run, decrease if you're hitting rate limits. |
+
+Argument flags override config file values for a single run:
+
+```
+/insights --days 7              # override days
+/insights --model anthropic/claude-sonnet-4-5  # use a smarter model this run
+/insights --force               # re-analyze all sessions, ignoring cache
+```
 
 ## How it works
 
