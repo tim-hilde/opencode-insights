@@ -40,9 +40,17 @@ In the opencode TUI:
 
 ## Configuration
 
-Set `OPENCODE_INSIGHTS_MODEL=provider/model` environment variable to override the default analysis model (`anthropic/claude-haiku-4-5`).
+Create `~/.config/opencode/insights.json` to set defaults:
 
-Or pass `--model provider/model` as an argument to `/insights`.
+```json
+{
+  "model": "anthropic/claude-haiku-4-5",
+  "days": 30,
+  "concurrency": 4
+}
+```
+
+All fields are optional. Precedence: `--model` arg > `insights.json` > built-in default (`anthropic/claude-haiku-4-5`).
 
 ## How it works
 

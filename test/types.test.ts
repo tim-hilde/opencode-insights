@@ -78,8 +78,6 @@ describe("type compatibility", () => {
       goalCategories: { fix_bug: 1, debug_investigate: 0 },
       outcome: "fully_achieved",
       satisfaction: { happy: 1 },
-      helpfulness: "very_helpful",
-      sessionType: "single_task",
       frictionCounts: { wrong_approach: 2 },
       frictionDetail: "none",
       primarySuccess: "correct_code_edits",

@@ -72,8 +72,6 @@ function normalizeFacet(sessionId: string, raw: unknown): SessionFacet {
     goalCategories: normalizeCategories(r.goal_categories ?? r.goalCategories, GOAL_CATEGORIES),
     outcome: String(r.outcome ?? ""),
     satisfaction: normalizeCategories(r.satisfaction, SATISFACTION_LEVELS),
-    helpfulness: String(r.helpfulness ?? ""),
-    sessionType: String(r.session_type ?? r.sessionType ?? ""),
     frictionCounts: normalizeCategories(r.friction_counts ?? r.frictionCounts, FRICTION_CATEGORIES),
     frictionDetail: String(r.friction_detail ?? r.frictionDetail ?? ""),
     primarySuccess: String(r.primary_success ?? r.primarySuccess ?? ""),

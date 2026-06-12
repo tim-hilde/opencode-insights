@@ -11,8 +11,6 @@ const minimalFacet = {
   goal_categories: {},
   outcome: "done",
   satisfaction: {},
-  helpfulness: "good",
-  session_type: "test",
   friction_counts: {},
   friction_detail: "",
   primary_success: "ok",

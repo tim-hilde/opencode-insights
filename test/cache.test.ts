@@ -11,8 +11,6 @@ const sampleFacet: SessionFacet = {
   goalCategories: { fix_bug: 1 },
   outcome: "fully_achieved",
   satisfaction: { satisfied: 1 },
-  helpfulness: "good",
-  sessionType: "bug_fix",
   frictionCounts: {},
   frictionDetail: "",
   primarySuccess: "Bug fixed",

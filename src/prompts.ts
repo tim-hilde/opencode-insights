@@ -61,8 +61,6 @@ Return a JSON object with these fields:
 - "goal_categories": object with keys [${categoriesStr}], each mapped to 0 or 1
 - "outcome": one of "fully_achieved", "mostly_achieved", "partially_achieved", "not_achieved", "unclear"
 - "satisfaction": object with keys [${satisfactionStr}], each mapped to 0 or 1 (exactly one should be 1)
-- "helpfulness": one of "unhelpful", "slightly_helpful", "moderately_helpful", "very_helpful", "essential"
-- "session_type": one of "single_task", "multi_task", "iterative_refinement", "exploration", "quick_question"
 - "friction_counts": object with keys [${FRICTION_CATEGORIES.join(", ")}], each mapped to a count integer
 - "friction_detail": string — brief description of the main friction point if any, else empty string
 - "primary_success": string — the main thing that went well, or "none"

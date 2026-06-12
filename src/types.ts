@@ -55,8 +55,6 @@ export interface SessionFacet {
   goalCategories: Partial<Record<GoalCategory, number>>
   outcome: string
   satisfaction: Partial<Record<SatisfactionLevel, number>>
-  helpfulness: string
-  sessionType: string
   frictionCounts: Partial<Record<FrictionCategory, number>>
   frictionDetail: string
   primarySuccess: string

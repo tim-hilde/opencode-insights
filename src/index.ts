@@ -2,9 +2,30 @@ import type { Plugin } from "@opencode-ai/plugin"
 import { tool } from "@opencode-ai/plugin"
 import { DEFAULT_MODEL } from "./types.ts"
 import { runInsights } from "./orchestrator.ts"
-import type { InsightsConfig } from "./types.ts"
+import type { InsightsConfig, InsightsModel } from "./types.ts"
+import { readFileSync, existsSync } from "fs"
+import { join } from "path"
+
+interface PluginConfig {
+  model?: string
+  days?: number
+  concurrency?: number
+}
+
+function readPluginConfig(configDir: string): PluginConfig {
+  const path = join(configDir, "insights.json")
+  if (!existsSync(path)) return {}
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as PluginConfig
+  } catch {
+    return {}
+  }
+}
 
 export const InsightsPlugin: Plugin = async (ctx) => {
+  const initPaths = (await ctx.client.path.get() as { data: { config: string; state: string } }).data
+  const pluginConfig = readPluginConfig(initPaths.config)
+
   return {
     async config(cfg) {
       cfg.agent ??= {}
@@ -34,17 +55,20 @@ export const InsightsPlugin: Plugin = async (ctx) => {
           project: tool.schema.boolean().default(false).optional(),
         },
         async execute(args, toolCtx) {
-          const modelStr = args.model ?? process.env.OPENCODE_INSIGHTS_MODEL
-          const model = parseModel(modelStr)
+          // model precedence: --model arg > insights.json config > default
+          const model: InsightsModel = args.model
+            ? parseModel(args.model)
+            : pluginConfig.model
+              ? parseModel(pluginConfig.model)
+              : DEFAULT_MODEL
 
-          const pathResult = await ctx.client.path.get()
-          const stateDir = (pathResult as { data: { state: string } }).data.state
+          const stateDir = initPaths.state
 
           const config: InsightsConfig = {
             model,
-            days: args.days ?? 30,
+            days: args.days ?? pluginConfig.days ?? 30,
             force: args.force ?? false,
-            concurrency: 4,
+            concurrency: pluginConfig.concurrency ?? 4,
             projectOnly: args.project ?? false,
             output: args.output ?? `${stateDir}/insights/report-${dateStamp()}.html`,
           }
