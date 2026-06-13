@@ -1,19 +1,62 @@
 {
   "name": "opencode-insights",
   "version": "0.1.0",
+  "description": "OpenCode plugin that analyses your session history and generates an HTML insights report",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "plugin",
+    "insights",
+    "analytics"
+  ],
+  "author": "Tim Hildebrandt <44113468+tim-hilde@users.noreply.github.com>",
+  "license": "MIT",
+  "repository": "github:tim-hilde/opencode-insights",
+  "homepage": "https://github.com/tim-hilde/opencode-insights",
+  "bugs": "https://github.com/tim-hilde/opencode-insights/issues",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
     "test": "bun test",
+    "lint": "biome check src test",
+    "format": "biome check --write src test",
     "smoke": "bun run scripts/smoke-db.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@opencode-ai/plugin": "^1.16.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.8",
+    "@semantic-release/npm": "^13.1.5",
+    "@types/bun": "latest",
+    "@types/node": "^22.0.0",
+    "lefthook": "^1.11.13",
+    "semantic-release": "^25.0.3",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": "*"
-  },
-  "devDependencies": {
-    "@opencode-ai/plugin": "file:/Users/tim/.opencode/node_modules/@opencode-ai/plugin",
-    "@opencode-ai/sdk": "file:/Users/tim/.opencode/node_modules/@opencode-ai/sdk",
-    "@types/bun": "latest",
-    "typescript": "^5"
   }
 }
