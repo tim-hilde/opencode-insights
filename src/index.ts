@@ -1,4 +1,5 @@
 import type { Plugin } from "@opencode-ai/plugin"
+import type { LlmClient } from "./llm.ts"
 import { tool } from "@opencode-ai/plugin"
 import { DEFAULT_MODEL } from "./types.ts"
 import { runInsights } from "./orchestrator.ts"
@@ -97,7 +98,7 @@ export const InsightsPlugin: Plugin = async (ctx) => {
 
           const result = await runInsights(
             {
-              client: ctx.client as any,
+              client: ctx.client as unknown as LlmClient,
               stateDir,
               projectDir: toolCtx.directory,
             },

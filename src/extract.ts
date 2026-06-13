@@ -37,7 +37,7 @@ export function reconstructTranscript(db: Database, sessionId: string): string {
 
   const lines: string[] = []
   for (const row of rows) {
-    let part: Record<string, any>
+    let part: Record<string, unknown>
     try {
       part = JSON.parse(row.partData)
     } catch {
@@ -49,8 +49,8 @@ export function reconstructTranscript(db: Database, sessionId: string): string {
     if (part.type === "text" && part.text) {
       lines.push(`[${role}]: ${part.text}`)
     } else if (part.type === "tool" && part.tool) {
-      const toolName: string = typeof part.tool === "string" ? part.tool : part.tool.name ?? "unknown"
-      const status: string = part.state?.status ?? "unknown"
+      const toolName: string = typeof part.tool === "string" ? part.tool : (part.tool as { name?: string } | null)?.name ?? "unknown"
+      const status: string = (part.state as { status?: string } | null | undefined)?.status ?? "unknown"
       lines.push(`[assistant]: Used ${toolName} (${status})`)
     } else if (part.type === "reasoning" && part.text) {
       lines.push(`[assistant]: (reasoning) ${String(part.text).slice(0, 200)}`)
