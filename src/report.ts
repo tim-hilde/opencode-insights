@@ -1,12 +1,12 @@
-import type { AggregatedStats, InsightsConfig, SessionFacet } from "./types.ts"
+import type { AggregatedStats, InsightsConfig, SessionFacet } from "./types.ts";
 
 export interface ReportData {
-  stats: AggregatedStats
-  facets: Map<string, SessionFacet>
-  aggregates: Record<string, unknown>
-  atAGlance: Record<string, unknown>
-  config: InsightsConfig
-  generatedAt: number
+  stats: AggregatedStats;
+  facets: Map<string, SessionFacet>;
+  aggregates: Record<string, unknown>;
+  atAGlance: Record<string, unknown>;
+  config: InsightsConfig;
+  generatedAt: number;
 }
 
 // ── Escaping & formatting ─────────────────────────────────────────────────────
@@ -17,346 +17,431 @@ function esc(s: unknown): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#x27;")
+    .replace(/'/g, "&#x27;");
 }
 
 function fmtTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
-  return String(n)
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
 }
 
 function fmtCost(n: number): string {
-  return `$${n.toFixed(4)}`
+  return `$${n.toFixed(4)}`;
 }
 
 function fmtDate(ms: number): string {
-  return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  return new Date(ms).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function fmtPct(n: number): string {
-  return `${(n * 100).toFixed(1)}%`
+  return `${(n * 100).toFixed(1)}%`;
 }
 
 function unavailable(): string {
-  return `<p class="muted">(analysis unavailable)</p>`
+  return `<p class="muted">(analysis unavailable)</p>`;
 }
 
 function isEmptyObject(v: unknown): boolean {
-  return v == null || (typeof v === "object" && !Array.isArray(v) && Object.keys(v as object).length === 0)
+  return (
+    v == null ||
+    (typeof v === "object" && !Array.isArray(v) && Object.keys(v as object).length === 0)
+  );
 }
 
 // ── Component helpers ─────────────────────────────────────────────────────────
 
-function barChart(title: string, items: Array<{ label: string; value: number; fmt?: string }>, color = "var(--clay)"): string {
-  if (!items.length) return ""
-  const max = Math.max(...items.map(i => i.value), 1)
-  const rows = items.map(i => {
-    const pct = Math.round((i.value / max) * 100)
-    const display = esc(i.fmt ?? String(i.value))
-    return `<div class="bar-row">
+function barChart(
+  title: string,
+  items: Array<{ label: string; value: number; fmt?: string }>,
+  color = "var(--clay)",
+): string {
+  if (!items.length) return "";
+  const max = Math.max(...items.map((i) => i.value), 1);
+  const rows = items
+    .map((i) => {
+      const pct = Math.round((i.value / max) * 100);
+      const display = esc(i.fmt ?? String(i.value));
+      return `<div class="bar-row">
       <span class="bar-label">${esc(i.label)}</span>
       <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
       <span class="bar-value">${display}</span>
-    </div>`
-  }).join("")
+    </div>`;
+    })
+    .join("");
   return `<div class="bar-chart">
     <div class="bar-chart-title">${esc(title)}</div>
     ${rows}
-  </div>`
+  </div>`;
 }
 
 function effortBadge(effort: unknown): string {
-  const e = String(effort ?? "").toLowerCase()
-  const cls = e === "low" ? "badge-low" : e === "high" ? "badge-high" : "badge-medium"
-  return `<span class="badge ${cls}">${esc(e || "?")}</span>`
+  const e = String(effort ?? "").toLowerCase();
+  const cls = e === "low" ? "badge-low" : e === "high" ? "badge-high" : "badge-medium";
+  return `<span class="badge ${cls}">${esc(e || "?")}</span>`;
 }
 
 function simpleList(items: unknown[]): string {
-  if (!items.length) return ""
-  return `<ul class="list-simple">${items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>`
+  if (!items.length) return "";
+  return `<ul class="list-simple">${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>`;
 }
 
 function keyInsight(text: unknown): string {
-  if (!text) return ""
-  return `<div class="key-insight">${esc(text)}</div>`
+  if (!text) return "";
+  return `<div class="key-insight">${esc(text)}</div>`;
 }
 
 // ── Section renderers ─────────────────────────────────────────────────────────
 
 function renderAtAGlance(atAGlance: Record<string, unknown>): string {
   const glanceItem = (key: string, label: string) => {
-    const val = atAGlance[key]
-    const content = val != null ? esc(val) : `<span class="muted">(analysis unavailable)</span>`
+    const val = atAGlance[key];
+    const content = val != null ? esc(val) : `<span class="muted">(analysis unavailable)</span>`;
     return `<div class="glance-item">
       <div class="glance-label">${label}</div>
       <div>${content}</div>
-    </div>`
-  }
+    </div>`;
+  };
   return `<div class="at-a-glance">
     ${glanceItem("whats_working", "What's Working")}
     ${glanceItem("whats_hindering", "What's Hindering")}
     ${glanceItem("quick_wins", "Quick Wins")}
     ${glanceItem("ambitious_workflows", "Ambitious Workflows")}
-  </div>`
+  </div>`;
 }
 
 function renderProjectAreas(agg: unknown): string {
-  if (isEmptyObject(agg)) return unavailable()
-  const data = agg as { areas?: Array<{ name: string; description: string; session_count: number; example_goals?: string[] }> }
-  if (!data.areas?.length) return unavailable()
-  return data.areas.map(a => `
+  if (isEmptyObject(agg)) return unavailable();
+  const data = agg as {
+    areas?: Array<{
+      name: string;
+      description: string;
+      session_count: number;
+      example_goals?: string[];
+    }>;
+  };
+  if (!data.areas?.length) return unavailable();
+  return data.areas
+    .map(
+      (a) => `
     <div class="card" style="margin:8px 0">
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
         <strong>${esc(a.name)}</strong>
         <span class="tag">${esc(a.session_count)} sessions</span>
       </div>
       <p style="margin:0 0 6px">${esc(a.description)}</p>
-      ${a.example_goals?.length ? `<div>${a.example_goals.map(g => `<span class="tag">${esc(g)}</span>`).join("")}</div>` : ""}
-    </div>`).join("")
+      ${a.example_goals?.length ? `<div>${a.example_goals.map((g) => `<span class="tag">${esc(g)}</span>`).join("")}</div>` : ""}
+    </div>`,
+    )
+    .join("");
 }
 
 function renderAgentPerformance(agg: unknown, stats: AggregatedStats): string {
   const chart = stats.topAgents.length
-    ? barChart("Agent usage (sessions)", stats.topAgents.map(a => ({ label: a.agent, value: a.count })))
-    : ""
+    ? barChart(
+        "Agent usage (sessions)",
+        stats.topAgents.map((a) => ({ label: a.agent, value: a.count })),
+      )
+    : "";
 
-  if (isEmptyObject(agg)) return chart || unavailable()
+  if (isEmptyObject(agg)) return chart || unavailable();
   const data = agg as {
-    top_performers?: Array<{ agent: string; strength: string; usage_pattern: string }>
-    cost_insights?: string[]
-    model_pairing_tips?: string[]
-    efficiency_opportunities?: string[]
-  }
+    top_performers?: Array<{ agent: string; strength: string; usage_pattern: string }>;
+    cost_insights?: string[];
+    model_pairing_tips?: string[];
+    efficiency_opportunities?: string[];
+  };
 
   const performers = data.top_performers?.length
-    ? data.top_performers.map(p => `
+    ? data.top_performers
+        .map(
+          (p) => `
         <div class="card" style="margin:8px 0">
           <strong>${esc(p.agent)}</strong>
           <p style="margin:4px 0">${esc(p.strength)}</p>
           <span class="muted">${esc(p.usage_pattern)}</span>
-        </div>`).join("")
-    : ""
+        </div>`,
+        )
+        .join("")
+    : "";
 
   const costInsights = data.cost_insights?.length
     ? `<h3>Cost Insights</h3>${simpleList(data.cost_insights)}`
-    : ""
+    : "";
 
   const modelTips = data.model_pairing_tips?.length
     ? `<h3>Model Pairing Tips</h3>${simpleList(data.model_pairing_tips)}`
-    : ""
+    : "";
 
   const efficiency = data.efficiency_opportunities?.length
     ? `<h3>Efficiency Opportunities</h3>${simpleList(data.efficiency_opportunities)}`
-    : ""
+    : "";
 
-  return chart + performers + costInsights + modelTips + efficiency || unavailable()
+  return chart + performers + costInsights + modelTips + efficiency || unavailable();
 }
 
 function renderCostIntelligence(stats: AggregatedStats): string {
   const modelChart = stats.byAgentModel.length
     ? barChart(
-      "Cost by model",
-      [...stats.byAgentModel]
-        .sort((a, b) => b.cost - a.cost)
-        .slice(0, 8)
-        .map(r => ({ label: r.model.replace(/^.*\//, ""), value: r.cost, fmt: fmtCost(r.cost) })),
-      "var(--olive)",
-    )
-    : ""
+        "Cost by model",
+        [...stats.byAgentModel]
+          .sort((a, b) => b.cost - a.cost)
+          .slice(0, 8)
+          .map((r) => ({
+            label: r.model.replace(/^.*\//, ""),
+            value: r.cost,
+            fmt: fmtCost(r.cost),
+          })),
+        "var(--olive)",
+      )
+    : "";
 
   const cacheChart = stats.cacheEfficiency.length
     ? barChart(
-      "Cache hit ratio by model",
-      stats.cacheEfficiency.map(r => ({
-        label: r.model.replace(/^.*\//, ""),
-        value: r.cacheRatio,
-        fmt: fmtPct(r.cacheRatio),
-      })),
-      "var(--olive)",
-    )
-    : ""
+        "Cache hit ratio by model",
+        stats.cacheEfficiency.map((r) => ({
+          label: r.model.replace(/^.*\//, ""),
+          value: r.cacheRatio,
+          fmt: fmtPct(r.cacheRatio),
+        })),
+        "var(--olive)",
+      )
+    : "";
 
   const costPer1kRows = stats.costPer1k.length
-    ? `<h3>Cost per 1k tokens</h3><div class="stats-grid">${stats.costPer1k.map(r => `
+    ? `<h3>Cost per 1k tokens</h3><div class="stats-grid">${stats.costPer1k
+        .map(
+          (r) => `
         <div class="stat">
           <div class="stat-label">${esc(r.model.replace(/^.*\//, ""))}</div>
           <div class="stat-value" style="font-size:16px">${esc(fmtCost(r.costPer1kTokens))}</div>
-        </div>`).join("")}</div>`
-    : ""
+        </div>`,
+        )
+        .join("")}</div>`
+    : "";
 
-  return modelChart + cacheChart + costPer1kRows || unavailable()
+  return modelChart + cacheChart + costPer1kRows || unavailable();
 }
 
 function renderInteractionAndFriction(interaction: unknown, friction: unknown): string {
-  let out = ""
+  let out = "";
 
   // Interaction style: narrative + key insight
   if (!isEmptyObject(interaction)) {
-    const d = interaction as { narrative?: string; key_patterns?: string[]; strengths?: string[]; growth_areas?: string[] }
-    if (d.narrative) out += `<div class="narrative"><p>${esc(d.narrative)}</p></div>`
-    if (d.key_patterns?.length) out += keyInsight(d.key_patterns[0])
-    if (d.strengths?.length) out += `<h3>Strengths</h3>${simpleList(d.strengths)}`
-    if (d.growth_areas?.length) out += `<h3>Growth Areas</h3>${simpleList(d.growth_areas)}`
+    const d = interaction as {
+      narrative?: string;
+      key_patterns?: string[];
+      strengths?: string[];
+      growth_areas?: string[];
+    };
+    if (d.narrative) out += `<div class="narrative"><p>${esc(d.narrative)}</p></div>`;
+    if (d.key_patterns?.length) out += keyInsight(d.key_patterns[0]);
+    if (d.strengths?.length) out += `<h3>Strengths</h3>${simpleList(d.strengths)}`;
+    if (d.growth_areas?.length) out += `<h3>Growth Areas</h3>${simpleList(d.growth_areas)}`;
   }
 
   // Friction items
   if (!isEmptyObject(friction)) {
-    const d = friction as { intro?: string; categories?: Array<{ category: string; description: string; examples?: string[] }> }
-    if (out) out += `<hr style="border:none;border-top:var(--border);margin:20px 0">`
-    if (d.intro) out += `<p>${esc(d.intro)}</p>`
+    const d = friction as {
+      intro?: string;
+      categories?: Array<{ category: string; description: string; examples?: string[] }>;
+    };
+    if (out) out += `<hr style="border:none;border-top:var(--border);margin:20px 0">`;
+    if (d.intro) out += `<p>${esc(d.intro)}</p>`;
     if (d.categories?.length) {
-      out += d.categories.map(c => `
+      out += d.categories
+        .map(
+          (c) => `
         <div class="friction-item">
           <strong>${esc(c.category)}</strong>
           <p style="margin:4px 0">${esc(c.description)}</p>
-          ${c.examples?.length ? `<ul style="margin:4px 0;padding-left:18px">${c.examples.map(e => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}
-        </div>`).join("")
+          ${c.examples?.length ? `<ul style="margin:4px 0;padding-left:18px">${c.examples.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}
+        </div>`,
+        )
+        .join("");
     }
   }
 
-  return out || unavailable()
+  return out || unavailable();
 }
 
 function renderSuggestions(agg: unknown): string {
-  if (isEmptyObject(agg)) return unavailable()
+  if (isEmptyObject(agg)) return unavailable();
   const data = agg as {
-    agents_md_additions?: Array<{ rule: string; rationale: string; why_now: string }>
-    features_to_try?: Array<{ feature: string; one_liner: string; why_for_you: string; example: string }>
-    workflow_patterns?: Array<{ pattern: string; benefit: string; how_to: string; copyable_prompt: string }>
-  }
+    agents_md_additions?: Array<{ rule: string; rationale: string; why_now: string }>;
+    features_to_try?: Array<{
+      feature: string;
+      one_liner: string;
+      why_for_you: string;
+      example: string;
+    }>;
+    workflow_patterns?: Array<{
+      pattern: string;
+      benefit: string;
+      how_to: string;
+      copyable_prompt: string;
+    }>;
+  };
 
-  let out = ""
+  let out = "";
 
   if (data.agents_md_additions?.length) {
-    out += `<h3>AGENTS.md Additions</h3>`
-    out += data.agents_md_additions.map(s => `
+    out += "<h3>AGENTS.md Additions</h3>";
+    out += data.agents_md_additions
+      .map(
+        (s) => `
       <div class="card" style="margin:8px 0">
         <strong>${esc(s.rule)}</strong>
         <p style="margin:4px 0">${esc(s.rationale)}</p>
         <span class="muted">${esc(s.why_now)}</span>
-      </div>`).join("")
+      </div>`,
+      )
+      .join("");
   }
 
   if (data.features_to_try?.length) {
-    out += `<h3>Features to Try</h3>`
-    out += data.features_to_try.map(f => `
+    out += "<h3>Features to Try</h3>";
+    out += data.features_to_try
+      .map(
+        (f) => `
       <div class="card" style="margin:8px 0">
         <strong>${esc(f.feature)}</strong> — ${esc(f.one_liner)}
         <p style="margin:4px 0">${esc(f.why_for_you)}</p>
         <pre>${esc(f.example)}</pre>
-      </div>`).join("")
+      </div>`,
+      )
+      .join("");
   }
 
   if (data.workflow_patterns?.length) {
-    out += `<h3>Workflow Patterns</h3>`
-    out += data.workflow_patterns.map(w => `
+    out += "<h3>Workflow Patterns</h3>";
+    out += data.workflow_patterns
+      .map(
+        (w) => `
       <div class="card" style="margin:8px 0">
         <strong>${esc(w.pattern)}</strong> — ${esc(w.benefit)}
         <p style="margin:4px 0">${esc(w.how_to)}</p>
         <pre>${esc(w.copyable_prompt)}</pre>
-      </div>`).join("")
+      </div>`,
+      )
+      .join("");
   }
 
-  return out || unavailable()
+  return out || unavailable();
 }
 
 function renderDelegationTopology(stats: AggregatedStats): string {
   if (!stats.agentDelegation.length) {
-    return `<p class="muted">No agent delegation recorded in this period.</p>`
+    return `<p class="muted">No agent delegation recorded in this period.</p>`;
   }
 
   const chart = barChart(
     "Delegations by agent pair",
-    stats.agentDelegation.map(d => ({
+    stats.agentDelegation.map((d) => ({
       label: `${d.parentAgent} → ${d.childAgent}`,
       value: d.count,
     })),
     "var(--g500)",
-  )
+  );
 
   // Summary stats
-  const totalDelegations = stats.agentDelegation.reduce((s, d) => s + d.count, 0)
-  const uniquePairs = stats.agentDelegation.length
+  const totalDelegations = stats.agentDelegation.reduce((s, d) => s + d.count, 0);
+  const uniquePairs = stats.agentDelegation.length;
   const statsRow = `<div class="stats-grid" style="margin-bottom:16px">
     <div class="stat"><div class="stat-label">Delegations</div><div class="stat-value">${totalDelegations}</div></div>
     <div class="stat"><div class="stat-label">Agent Pairs</div><div class="stat-value">${uniquePairs}</div></div>
-  </div>`
+  </div>`;
 
-  return statsRow + chart
+  return statsRow + chart;
 }
 
 function renderToolHealth(agg: unknown, stats: AggregatedStats): string {
   const chart = stats.topTools.length
-    ? barChart("Tool usage (calls)", stats.topTools.map(t => ({ label: t.tool, value: t.count })))
-    : ""
+    ? barChart(
+        "Tool usage (calls)",
+        stats.topTools.map((t) => ({ label: t.tool, value: t.count })),
+      )
+    : "";
 
   // Error rate sub-chart if data exists
-  const errorChart = stats.toolErrorRates.filter(t => t.errorRate > 0).length
+  const errorChart = stats.toolErrorRates.filter((t) => t.errorRate > 0).length
     ? barChart(
-      "Error rate by tool",
-      stats.toolErrorRates
-        .filter(t => t.errorRate > 0)
-        .sort((a, b) => b.errorRate - a.errorRate)
-        .slice(0, 6)
-        .map(t => ({ label: t.tool, value: t.errorRate, fmt: fmtPct(t.errorRate) })),
-      "var(--rust)",
-    )
-    : ""
+        "Error rate by tool",
+        stats.toolErrorRates
+          .filter((t) => t.errorRate > 0)
+          .sort((a, b) => b.errorRate - a.errorRate)
+          .slice(0, 6)
+          .map((t) => ({ label: t.tool, value: t.errorRate, fmt: fmtPct(t.errorRate) })),
+        "var(--rust)",
+      )
+    : "";
 
-  if (isEmptyObject(agg)) return chart + errorChart || unavailable()
+  if (isEmptyObject(agg)) return chart + errorChart || unavailable();
   const data = agg as {
-    problematic_tools?: Array<{ tool: string; error_rate: string; likely_cause: string }>
-    efficiency_tips?: string[]
-    recovery_patterns?: string[]
-  }
+    problematic_tools?: Array<{ tool: string; error_rate: string; likely_cause: string }>;
+    efficiency_tips?: string[];
+    recovery_patterns?: string[];
+  };
 
   const problemTools = data.problematic_tools?.length
-    ? data.problematic_tools.map(t => `
+    ? data.problematic_tools
+        .map(
+          (t) => `
         <div class="friction-item">
           <strong>${esc(t.tool)}</strong>
           <span class="tag" style="border-color:var(--rust);color:var(--rust)">${esc(t.error_rate)}</span>
           <p style="margin:4px 0">${esc(t.likely_cause)}</p>
-        </div>`).join("")
-    : ""
+        </div>`,
+        )
+        .join("")
+    : "";
 
   const effTips = data.efficiency_tips?.length
     ? `<h3>Efficiency Tips</h3>${simpleList(data.efficiency_tips)}`
-    : ""
+    : "";
 
   const recovery = data.recovery_patterns?.length
     ? `<h3>Recovery Patterns</h3>${simpleList(data.recovery_patterns)}`
-    : ""
+    : "";
 
-  return chart + errorChart + problemTools + effTips + recovery || unavailable()
+  return chart + errorChart + problemTools + effTips + recovery || unavailable();
 }
 
 function renderHorizon(agg: unknown): string {
-  if (isEmptyObject(agg)) return unavailable()
+  if (isEmptyObject(agg)) return unavailable();
   const data = agg as {
-    automation_opportunities?: Array<{ opportunity: string; how: string; effort: string }>
-    skill_gaps?: string[]
-    workflow_evolutions?: string[]
-  }
+    automation_opportunities?: Array<{ opportunity: string; how: string; effort: string }>;
+    skill_gaps?: string[];
+    workflow_evolutions?: string[];
+  };
 
-  let out = ""
+  let out = "";
 
   if (data.automation_opportunities?.length) {
-    out += `<h3>Automation Opportunities</h3>`
-    out += data.automation_opportunities.map(o => `
+    out += "<h3>Automation Opportunities</h3>";
+    out += data.automation_opportunities
+      .map(
+        (o) => `
       <div class="card" style="margin:8px 0">
         <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
           <strong>${esc(o.opportunity)}</strong>
           ${effortBadge(o.effort)}
         </div>
         <p style="margin:0">${esc(o.how)}</p>
-      </div>`).join("")
+      </div>`,
+      )
+      .join("");
   }
 
-  if (data.skill_gaps?.length) out += `<h3>Skill Gaps</h3>${simpleList(data.skill_gaps)}`
-  if (data.workflow_evolutions?.length) out += `<h3>Workflow Evolutions</h3>${simpleList(data.workflow_evolutions)}`
+  if (data.skill_gaps?.length) out += `<h3>Skill Gaps</h3>${simpleList(data.skill_gaps)}`;
+  if (data.workflow_evolutions?.length)
+    out += `<h3>Workflow Evolutions</h3>${simpleList(data.workflow_evolutions)}`;
 
-  return out || unavailable()
+  return out || unavailable();
 }
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
@@ -440,16 +525,16 @@ section[id]{scroll-margin-top:52px}
 .list-simple li{padding:5px 0;border-bottom:1px solid var(--g100);font-size:14px;color:var(--g700)}
 .list-simple li:last-child{border-bottom:none}
 .list-simple li::before{content:"→\\00a0";color:var(--clay)}
-`
+`;
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function generateReport(data: ReportData, insightsJson: string): string {
-  const { stats, aggregates, atAGlance } = data
-  const dateFrom = fmtDate(stats.dateRange.from)
-  const dateTo = fmtDate(stats.dateRange.to)
+  const { stats, aggregates, atAGlance } = data;
+  const dateFrom = fmtDate(stats.dateRange.from);
+  const dateTo = fmtDate(stats.dateRange.to);
 
-  const safeJson = insightsJson.replace(/<\/script>/gi, "<\\/script>")
+  const safeJson = insightsJson.replace(/<\/script>/gi, "<\\/script>");
 
   const navLinks = [
     ["#at-a-glance", "At a Glance"],
@@ -461,13 +546,15 @@ export function generateReport(data: ReportData, insightsJson: string): string {
     ["#delegation", "Delegation"],
     ["#tool-health", "Tools"],
     ["#horizon", "Horizon"],
-  ].map(([href, label]) => `<a href="${href}">${label}</a>`).join("")
+  ]
+    .map(([href, label]) => `<a href="${href}">${label}</a>`)
+    .join("");
 
   const section = (id: string, title: string, content: string) => `
   <section id="${id}">
     <div class="section-header"><h2>${title}</h2></div>
     <div class="panel">${content}</div>
-  </section>`
+  </section>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -545,5 +632,5 @@ function exportJson() {
 }
 </script>
 </body>
-</html>`
+</html>`;
 }

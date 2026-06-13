@@ -12,7 +12,7 @@ export const GOAL_CATEGORIES = [
   "write_docs",
   "deploy_infra",
   "warmup_minimal",
-] as const
+] as const;
 
 export const FRICTION_CATEGORIES = [
   "misunderstood_request",
@@ -27,7 +27,7 @@ export const FRICTION_CATEGORIES = [
   "external_issue",
   "user_unclear",
   "other",
-] as const
+] as const;
 
 export const SATISFACTION_LEVELS = [
   "happy",
@@ -36,11 +36,11 @@ export const SATISFACTION_LEVELS = [
   "neutral",
   "dissatisfied",
   "frustrated",
-] as const
+] as const;
 
-export type GoalCategory = (typeof GOAL_CATEGORIES)[number]
-export type FrictionCategory = (typeof FRICTION_CATEGORIES)[number]
-export type SatisfactionLevel = (typeof SATISFACTION_LEVELS)[number]
+export type GoalCategory = (typeof GOAL_CATEGORIES)[number];
+export type FrictionCategory = (typeof FRICTION_CATEGORIES)[number];
+export type SatisfactionLevel = (typeof SATISFACTION_LEVELS)[number];
 
 /**
  * Extracted facets from a single session transcript.
@@ -50,71 +50,82 @@ export type SatisfactionLevel = (typeof SATISFACTION_LEVELS)[number]
  * by the corresponding constant arrays (GOAL_CATEGORIES, FRICTION_CATEGORIES, etc.).
  */
 export interface SessionFacet {
-  sessionId: string
-  underlyingGoal: string
-  goalCategories: Partial<Record<GoalCategory, number>>
-  outcome: string
-  satisfaction: Partial<Record<SatisfactionLevel, number>>
-  frictionCounts: Partial<Record<FrictionCategory, number>>
-  frictionDetail: string
-  primarySuccess: string
-  briefSummary: string
+  sessionId: string;
+  underlyingGoal: string;
+  goalCategories: Partial<Record<GoalCategory, number>>;
+  outcome: string;
+  satisfaction: Partial<Record<SatisfactionLevel, number>>;
+  frictionCounts: Partial<Record<FrictionCategory, number>>;
+  frictionDetail: string;
+  primarySuccess: string;
+  briefSummary: string;
 }
 
 export interface SessionMeta {
-  id: string
-  title: string
-  projectDir: string | null
-  parentId: string | null
-  durationMinutes: number
-  userMsgCount: number
-  assistantMsgCount: number
-  inputTokens: number
-  outputTokens: number
-  reasoningTokens: number
-  cacheReadTokens: number
-  cacheWriteTokens: number
-  totalTokens: number
-  cost: number
-  toolCounts: Record<string, number>
-  agentCounts: Record<string, number>
-  modelCounts: Record<string, number>
-  startTime: number
-  endTime: number
+  id: string;
+  title: string;
+  projectDir: string | null;
+  parentId: string | null;
+  durationMinutes: number;
+  userMsgCount: number;
+  assistantMsgCount: number;
+  inputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  totalTokens: number;
+  cost: number;
+  toolCounts: Record<string, number>;
+  agentCounts: Record<string, number>;
+  modelCounts: Record<string, number>;
+  startTime: number;
+  endTime: number;
 }
 
 export interface AggregatedStats {
-  totalSessions: number
-  analyzedSessions: number
-  dateRange: { from: number; to: number }
-  totalMessages: number
-  totalCost: number
-  totalTokens: number
-  topTools: Array<{ tool: string; count: number }>
-  topAgents: Array<{ agent: string; count: number }>
-  topModels: Array<{ model: string; count: number }>
-  byAgentModel: Array<{ agent: string; model: string; sessions: number; cost: number; tokens: number }>
-  toolErrorRates: Array<{ tool: string; totalCalls: number; errorCalls: number; errorRate: number }>
-  cacheEfficiency: Array<{ model: string; cacheRatio: number }>
-  costPer1k: Array<{ model: string; costPer1kTokens: number }>
-  agentDelegation: Array<{ parentAgent: string; childAgent: string; count: number }>
+  totalSessions: number;
+  analyzedSessions: number;
+  dateRange: { from: number; to: number };
+  totalMessages: number;
+  totalCost: number;
+  totalTokens: number;
+  topTools: Array<{ tool: string; count: number }>;
+  topAgents: Array<{ agent: string; count: number }>;
+  topModels: Array<{ model: string; count: number }>;
+  byAgentModel: Array<{
+    agent: string;
+    model: string;
+    sessions: number;
+    cost: number;
+    tokens: number;
+  }>;
+  toolErrorRates: Array<{
+    tool: string;
+    totalCalls: number;
+    errorCalls: number;
+    errorRate: number;
+  }>;
+  cacheEfficiency: Array<{ model: string; cacheRatio: number }>;
+  costPer1k: Array<{ model: string; costPer1kTokens: number }>;
+  agentDelegation: Array<{ parentAgent: string; childAgent: string; count: number }>;
 }
 
 export interface InsightsModel {
-  providerID: string
-  modelID: string
+  providerID: string;
+  modelID: string;
 }
 
 export interface InsightsConfig {
-  model: InsightsModel
-  days: number
-  force: boolean
-  concurrency: number
-  projectOnly: boolean
-  output: string
+  model: InsightsModel;
+  days: number;
+  force: boolean;
+  concurrency: number;
+  projectOnly: boolean;
+  output: string;
 }
 
 export const DEFAULT_MODEL: InsightsModel = {
   providerID: "anthropic",
   modelID: "claude-haiku-4-5",
-}
+};

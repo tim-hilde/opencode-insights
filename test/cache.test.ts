@@ -1,9 +1,9 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test"
-import { mkdtempSync, rmSync, existsSync, writeFileSync } from "fs"
-import { join } from "path"
-import { tmpdir } from "os"
-import { FacetCache } from "../src/cache.ts"
-import type { SessionFacet } from "../src/types.ts"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { FacetCache } from "../src/cache.ts";
+import type { SessionFacet } from "../src/types.ts";
 
 const sampleFacet: SessionFacet = {
   sessionId: "test-123",
@@ -15,81 +15,81 @@ const sampleFacet: SessionFacet = {
   frictionDetail: "",
   primarySuccess: "Bug fixed",
   briefSummary: "Fixed a login authentication bug",
-}
+};
 
-let dir: string
-let cache: FacetCache
+let dir: string;
+let cache: FacetCache;
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "facet-cache-test-"))
-  cache = new FacetCache(dir)
-})
+  dir = mkdtempSync(join(tmpdir(), "facet-cache-test-"));
+  cache = new FacetCache(dir);
+});
 
 afterEach(() => {
-  rmSync(dir, { recursive: true, force: true })
-})
+  rmSync(dir, { recursive: true, force: true });
+});
 
 describe("FacetCache.has", () => {
   test("returns false for nonexistent session", () => {
-    expect(cache.has("missing")).toBe(false)
-  })
+    expect(cache.has("missing")).toBe(false);
+  });
 
   test("returns true after put", () => {
-    cache.put("test-123", sampleFacet)
-    expect(cache.has("test-123")).toBe(true)
-  })
-})
+    cache.put("test-123", sampleFacet);
+    expect(cache.has("test-123")).toBe(true);
+  });
+});
 
 describe("FacetCache.get", () => {
   test("returns null for nonexistent session", () => {
-    expect(cache.get("missing")).toBeNull()
-  })
+    expect(cache.get("missing")).toBeNull();
+  });
 
   test("returns facet back after put (deep equality)", () => {
-    cache.put("test-123", sampleFacet)
-    expect(cache.get("test-123")).toEqual(sampleFacet)
-  })
+    cache.put("test-123", sampleFacet);
+    expect(cache.get("test-123")).toEqual(sampleFacet);
+  });
 
   test("returns null on corrupted JSON file", () => {
-    writeFileSync(join(dir, "bad.json"), "not valid json{{{", "utf-8")
-    expect(cache.get("bad")).toBeNull()
-  })
-})
+    writeFileSync(join(dir, "bad.json"), "not valid json{{{", "utf-8");
+    expect(cache.get("bad")).toBeNull();
+  });
+});
 
 describe("FacetCache.put", () => {
   test("no .tmp file left after successful put", () => {
-    cache.put("test-123", sampleFacet)
-    expect(existsSync(join(dir, "test-123.json.tmp"))).toBe(false)
-  })
+    cache.put("test-123", sampleFacet);
+    expect(existsSync(join(dir, "test-123.json.tmp"))).toBe(false);
+  });
 
   test("overwrites existing entry correctly", () => {
-    cache.put("test-123", sampleFacet)
-    const updated: SessionFacet = { ...sampleFacet, underlyingGoal: "Different goal" }
-    cache.put("test-123", updated)
-    expect(cache.get("test-123")).toEqual(updated)
-  })
-})
+    cache.put("test-123", sampleFacet);
+    const updated: SessionFacet = { ...sampleFacet, underlyingGoal: "Different goal" };
+    cache.put("test-123", updated);
+    expect(cache.get("test-123")).toEqual(updated);
+  });
+});
 
 describe("FacetCache.clear", () => {
   test("removes all .json files", () => {
-    cache.put("a", sampleFacet)
-    cache.put("b", sampleFacet)
-    cache.clear()
-    expect(cache.has("a")).toBe(false)
-    expect(cache.has("b")).toBe(false)
-  })
+    cache.put("a", sampleFacet);
+    cache.put("b", sampleFacet);
+    cache.clear();
+    expect(cache.has("a")).toBe(false);
+    expect(cache.has("b")).toBe(false);
+  });
 
   test("removes leftover .tmp files", () => {
-    const tmpFile = join(dir, "leftover.json.tmp")
-    writeFileSync(tmpFile, "{}", "utf-8")
-    cache.clear()
-    expect(existsSync(tmpFile)).toBe(false)
-  })
+    const tmpFile = join(dir, "leftover.json.tmp");
+    writeFileSync(tmpFile, "{}", "utf-8");
+    cache.clear();
+    expect(existsSync(tmpFile)).toBe(false);
+  });
 
   test("does not throw on nonexistent dir", () => {
-    const emptyCache = new FacetCache(join(tmpdir(), "facet-nonexistent-" + Date.now()))
+    const emptyCache = new FacetCache(join(tmpdir(), `facet-nonexistent-${Date.now()}`));
     // Remove the dir that was auto-created by the constructor
-    rmSync(emptyCache.dir, { recursive: true, force: true })
-    expect(() => emptyCache.clear()).not.toThrow()
-  })
-})
+    rmSync(emptyCache.dir, { recursive: true, force: true });
+    expect(() => emptyCache.clear()).not.toThrow();
+  });
+});

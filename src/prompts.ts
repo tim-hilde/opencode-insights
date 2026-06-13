@@ -1,9 +1,9 @@
-import { FRICTION_CATEGORIES, GOAL_CATEGORIES, SATISFACTION_LEVELS } from "./types.ts"
+import { FRICTION_CATEGORIES, GOAL_CATEGORIES, SATISFACTION_LEVELS } from "./types.ts";
 
 const JSON_SUFFIX =
-  "RESPOND WITH ONLY A VALID JSON OBJECT. No markdown, no explanation, no code fences."
+  "RESPOND WITH ONLY A VALID JSON OBJECT. No markdown, no explanation, no code fences.";
 
-const TONE = `Use second person ("you"). Constructive coaching tone. Don't be fluffy or overly complimentary. Be honest but constructive.`
+const TONE = `Use second person ("you"). Constructive coaching tone. Don't be fluffy or overly complimentary. Be honest but constructive.`;
 
 const FRICTION_DEFS: Record<(typeof FRICTION_CATEGORIES)[number], string> = {
   misunderstood_request: "Agent interpreted the user's request incorrectly",
@@ -18,12 +18,12 @@ const FRICTION_DEFS: Record<(typeof FRICTION_CATEGORIES)[number], string> = {
   external_issue: "External tool, API, or environment problem (not agent's fault)",
   user_unclear: "User's request was ambiguous or lacked necessary context",
   other: "Friction not covered by the above categories",
-}
+};
 
 export function buildFacetPrompt(transcript: string, metaSummary: string): string {
-  const categoriesStr = GOAL_CATEGORIES.join(", ")
-  const satisfactionStr = SATISFACTION_LEVELS.join(", ")
-  const frictionStr = FRICTION_CATEGORIES.map((c) => `   - ${c}: ${FRICTION_DEFS[c]}`).join("\n")
+  const categoriesStr = GOAL_CATEGORIES.join(", ");
+  const satisfactionStr = SATISFACTION_LEVELS.join(", ");
+  const frictionStr = FRICTION_CATEGORIES.map((c) => `   - ${c}: ${FRICTION_DEFS[c]}`).join("\n");
 
   return `You are analyzing an OpenCode session transcript. OpenCode is an AI-powered CLI tool where users interact with agents (build, explore, librarian, oracle) that use tools, skills, and project-specific AGENTS.md rules to complete tasks.
 
@@ -66,7 +66,7 @@ Return a JSON object with these fields:
 - "primary_success": string — the main thing that went well, or "none"
 - "brief_summary": string — 2-3 sentences max describing what happened
 
-${JSON_SUFFIX}`
+${JSON_SUFFIX}`;
 }
 
 export function buildChunkSummaryPrompt(chunk: string): string {
@@ -76,11 +76,11 @@ Omit: repetitive tool output, file contents, long code blocks.
 Return a concise prose summary (max 500 words).
 
 TRANSCRIPT CHUNK:
-${chunk}`
+${chunk}`;
 }
 
 export function buildProjectAreasPrompt(data: unknown): string {
-  const dataStr = JSON.stringify(data, null, 2)
+  const dataStr = JSON.stringify(data, null, 2);
   return `You are analyzing OpenCode session data to identify the main areas of a project that the user works on. Sessions involve interactions with agents (build, explore, librarian, oracle) using tools, skills, and AGENTS.md project rules.
 
 ${TONE}
@@ -97,11 +97,11 @@ Return a JSON object:
   ]
 }
 
-${JSON_SUFFIX}`
+${JSON_SUFFIX}`;
 }
 
 export function buildInteractionStylePrompt(data: unknown): string {
-  const dataStr = JSON.stringify(data, null, 2)
+  const dataStr = JSON.stringify(data, null, 2);
   return `You are analyzing how a developer interacts with the OpenCode agent. Look at their patterns: how they phrase requests, how much context they provide, how they respond to agent actions, and how sessions typically unfold.
 
 ${TONE}
@@ -117,11 +117,11 @@ Return a JSON object:
   "growth_areas": ["string — where their interaction style could improve"]
 }
 
-${JSON_SUFFIX}`
+${JSON_SUFFIX}`;
 }
 
 export function buildAgentPerformancePrompt(data: unknown): string {
-  const dataStr = JSON.stringify(data, null, 2)
+  const dataStr = JSON.stringify(data, null, 2);
   return `You are analyzing agent performance across OpenCode sessions. OpenCode uses multiple agents (build, explore, librarian, oracle) and multiple models. Identify which agents perform best for which tasks, and surface cost and efficiency insights.
 
 ${TONE}
@@ -139,11 +139,11 @@ Return a JSON object:
   "efficiency_opportunities": ["string — specific way to reduce cost or time"]
 }
 
-${JSON_SUFFIX}`
+${JSON_SUFFIX}`;
 }
 
 export function buildFrictionPrompt(data: unknown): string {
-  const dataStr = JSON.stringify(data, null, 2)
+  const dataStr = JSON.stringify(data, null, 2);
   return `Analyze this OpenCode usage data and identify friction points for this user. Use second person ("you").
 
 ${TONE}
@@ -161,11 +161,11 @@ RESPOND WITH ONLY A VALID JSON OBJECT:
 
   Include 3 friction categories with 2 examples each.
 
-${JSON_SUFFIX}`
+${JSON_SUFFIX}`;
 }
 
 export function buildSuggestionsPrompt(data: unknown): string {
-  const dataStr = JSON.stringify(data, null, 2)
+  const dataStr = JSON.stringify(data, null, 2);
   return `Analyze this OpenCode usage data and suggest improvements.
 
 ${TONE}
@@ -212,11 +212,11 @@ RESPOND WITH ONLY A VALID JSON OBJECT:
   ]
 }
 
-${JSON_SUFFIX}`
+${JSON_SUFFIX}`;
 }
 
 export function buildToolHealthPrompt(data: unknown): string {
-  const dataStr = JSON.stringify(data, null, 2)
+  const dataStr = JSON.stringify(data, null, 2);
   return `You are analyzing tool usage health across OpenCode sessions. Tools include file operations (read, write, edit, glob, grep), shell commands (bash), LSP operations (diagnostics, definitions, references), and specialized tools (ast_grep, web fetch).
 
 ${TONE}
@@ -233,11 +233,11 @@ Return a JSON object:
   "recovery_patterns": ["string — what to do when tools fail"]
 }
 
-${JSON_SUFFIX}`
+${JSON_SUFFIX}`;
 }
 
 export function buildHorizonPrompt(data: unknown): string {
-  const dataStr = JSON.stringify(data, null, 2)
+  const dataStr = JSON.stringify(data, null, 2);
   return `You are identifying future opportunities for an OpenCode user's workflow. Consider automation via hooks and headless mode (\`opencode run\`), skill gaps that could be filled with custom skills, and how their workflow could evolve as they adopt more OpenCode features like AGENTS.md rules and session management.
 
 ${TONE}
@@ -254,12 +254,12 @@ Return a JSON object:
   "workflow_evolutions": ["string — how their workflow could improve with better tooling or habits"]
 }
 
-${JSON_SUFFIX}`
+${JSON_SUFFIX}`;
 }
 
 export function buildAtAGlancePrompt(allInsights: unknown, statsSummary: unknown): string {
-  const insightsStr = JSON.stringify(allInsights, null, 2)
-  const statsStr = JSON.stringify(statsSummary, null, 2)
+  const insightsStr = JSON.stringify(allInsights, null, 2);
+  const statsStr = JSON.stringify(statsSummary, null, 2);
   return `You're writing an "At a Glance" summary for an OpenCode usage insights report. The goal is to help users understand their usage and improve how they use OpenCode, especially as models improve.
 
 ${TONE}
@@ -290,5 +290,5 @@ RESPOND WITH ONLY A VALID JSON OBJECT:
   "ambitious_workflows": "string"
 }
 
-${JSON_SUFFIX}`
+${JSON_SUFFIX}`;
 }

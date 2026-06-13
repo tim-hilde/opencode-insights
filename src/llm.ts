@@ -1,31 +1,31 @@
 export interface SessionPromptBody {
-  model?: { providerID: string; modelID: string }
-  agent?: string
-  system?: string
-  tools?: Record<string, boolean>
-  parts: Array<{ type: "text"; text: string }>
-  noReply?: boolean
+  model?: { providerID: string; modelID: string };
+  agent?: string;
+  system?: string;
+  tools?: Record<string, boolean>;
+  parts: Array<{ type: "text"; text: string }>;
+  noReply?: boolean;
 }
 
 export interface LlmClient {
   session: {
-    create(opts: { body: { title: string } }): Promise<unknown>
-    prompt(opts: { path: { id: string }; body: SessionPromptBody }): Promise<unknown>
-    delete(opts: { path: { id: string } }): Promise<unknown>
-  }
+    create(opts: { body: { title: string } }): Promise<unknown>;
+    prompt(opts: { path: { id: string }; body: SessionPromptBody }): Promise<unknown>;
+    delete(opts: { path: { id: string } }): Promise<unknown>;
+  };
 }
 
 export interface LlmCallOptions {
-  model: { providerID: string; modelID: string }
-  prompt: string
-  system?: string
+  model: { providerID: string; modelID: string };
+  prompt: string;
+  system?: string;
 }
 
 export async function runLlm(client: LlmClient, opts: LlmCallOptions): Promise<string> {
-  const createResult = await client.session.create({ body: { title: "[insights] analysis" } })
-  const sessionId = (createResult as { data: { id: string } }).data.id
+  const createResult = await client.session.create({ body: { title: "[insights] analysis" } });
+  const sessionId = (createResult as { data: { id: string } }).data.id;
 
-  let text = ""
+  let text = "";
   try {
     const promptResult = await client.session.prompt({
       path: { id: sessionId },
@@ -36,19 +36,19 @@ export async function runLlm(client: LlmClient, opts: LlmCallOptions): Promise<s
         system: opts.system,
         parts: [{ type: "text", text: opts.prompt }],
       },
-    })
+    });
 
     const parts = (promptResult as { data: { parts: Array<{ type: string; text?: string }> } }).data
-      .parts
+      .parts;
     text = parts
       .filter((p) => p.type === "text")
       .map((p) => p.text ?? "")
-      .join("")
+      .join("");
   } finally {
-    await client.session.delete({ path: { id: sessionId } })
+    await client.session.delete({ path: { id: sessionId } });
   }
 
-  return text
+  return text;
 }
 
 export class JsonParseError extends Error {
@@ -56,28 +56,28 @@ export class JsonParseError extends Error {
     readonly raw: string,
     cause: unknown,
   ) {
-    super("Failed to parse JSON from LLM response")
-    this.cause = cause
+    super("Failed to parse JSON from LLM response");
+    this.cause = cause;
   }
 }
 
 export function extractJson(text: string): unknown {
-  let cleaned = text.trim()
+  let cleaned = text.trim();
 
-  const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]+?)\s*```/)
-  if (fenceMatch) cleaned = fenceMatch[1]
+  const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
+  if (fenceMatch) cleaned = fenceMatch[1];
 
-  const start = cleaned.indexOf("{")
-  const end = cleaned.lastIndexOf("}")
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) {
-    throw new JsonParseError(text, new Error("No JSON object found"))
+    throw new JsonParseError(text, new Error("No JSON object found"));
   }
 
-  const jsonStr = cleaned.slice(start, end + 1)
+  const jsonStr = cleaned.slice(start, end + 1);
   try {
-    return JSON.parse(jsonStr)
+    return JSON.parse(jsonStr);
   } catch (e) {
-    throw new JsonParseError(text, e)
+    throw new JsonParseError(text, e);
   }
 }
 
@@ -86,17 +86,17 @@ export async function mapLimit<T, R>(
   limit: number,
   fn: (item: T, index: number) => Promise<R>,
 ): Promise<R[]> {
-  const results: R[] = new Array(items.length)
-  let nextIndex = 0
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
 
   async function worker(): Promise<void> {
     while (nextIndex < items.length) {
-      const i = nextIndex++
-      results[i] = await fn(items[i], i)
+      const i = nextIndex++;
+      results[i] = await fn(items[i], i);
     }
   }
 
-  const workers = Array.from({ length: Math.min(limit, items.length) }, worker)
-  await Promise.all(workers)
-  return results
+  const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
+  await Promise.all(workers);
+  return results;
 }

@@ -1,49 +1,49 @@
-import { Database } from "bun:sqlite"
-import { mapLimit, extractJson, runLlm } from "./llm.ts"
-import type { LlmClient } from "./llm.ts"
+import type { Database } from "bun:sqlite";
+import type { FacetCache } from "./cache.ts";
+import { getSessionMeta } from "./db.ts";
+import { reconstructTranscript } from "./extract.ts";
+import { extractJson, mapLimit, runLlm } from "./llm.ts";
+import type { LlmClient } from "./llm.ts";
 import {
+  buildAgentPerformancePrompt,
+  buildAtAGlancePrompt,
   buildChunkSummaryPrompt,
   buildFacetPrompt,
-  buildProjectAreasPrompt,
-  buildInteractionStylePrompt,
-  buildAgentPerformancePrompt,
   buildFrictionPrompt,
+  buildHorizonPrompt,
+  buildInteractionStylePrompt,
+  buildProjectAreasPrompt,
   buildSuggestionsPrompt,
   buildToolHealthPrompt,
-  buildHorizonPrompt,
-  buildAtAGlancePrompt,
-} from "./prompts.ts"
-import { reconstructTranscript } from "./extract.ts"
-import { getSessionMeta } from "./db.ts"
-import type { FacetCache } from "./cache.ts"
-import type { SessionFacet, AggregatedStats, InsightsConfig } from "./types.ts"
-import { GOAL_CATEGORIES, FRICTION_CATEGORIES, SATISFACTION_LEVELS } from "./types.ts"
+} from "./prompts.ts";
+import type { AggregatedStats, InsightsConfig, SessionFacet } from "./types.ts";
+import { FRICTION_CATEGORIES, GOAL_CATEGORIES, SATISFACTION_LEVELS } from "./types.ts";
 
-const CHUNK_SIZE = 25000
-const PASSTHROUGH = 30000
-const MAX_NEW_SESSIONS = 200
+const CHUNK_SIZE = 25000;
+const PASSTHROUGH = 30000;
+const MAX_NEW_SESSIONS = 200;
 
 export async function prepareTranscript(
   client: LlmClient,
   transcript: string,
   model: { providerID: string; modelID: string },
 ): Promise<string> {
-  if (transcript.length <= PASSTHROUGH) return transcript
+  if (transcript.length <= PASSTHROUGH) return transcript;
 
-  const chunks: string[] = []
+  const chunks: string[] = [];
   for (let i = 0; i < transcript.length; i += CHUNK_SIZE) {
-    chunks.push(transcript.slice(i, i + CHUNK_SIZE))
+    chunks.push(transcript.slice(i, i + CHUNK_SIZE));
   }
 
   try {
     const summaries = await mapLimit(chunks, 2, async (chunk) => {
-      const prompt = buildChunkSummaryPrompt(chunk)
-      return runLlm(client, { model, prompt })
-    })
-    return summaries.join("\n\n---\n\n")
+      const prompt = buildChunkSummaryPrompt(chunk);
+      return runLlm(client, { model, prompt });
+    });
+    return summaries.join("\n\n---\n\n");
   } catch {
-    const keep = Math.floor(PASSTHROUGH * 0.4)
-    return transcript.slice(0, keep) + "\n[...truncated...]\n" + transcript.slice(-keep)
+    const keep = Math.floor(PASSTHROUGH * 0.4);
+    return `${transcript.slice(0, keep)}\n[...truncated...]\n${transcript.slice(-keep)}`;
   }
 }
 
@@ -51,20 +51,20 @@ function normalizeCategories<T extends string>(
   raw: unknown,
   allowed: readonly T[],
 ): Partial<Record<T, number>> {
-  if (!raw || typeof raw !== "object") return {}
-  const result: Partial<Record<T, number>> = {}
+  if (!raw || typeof raw !== "object") return {};
+  const result: Partial<Record<T, number>> = {};
   for (const key of Object.keys(raw as object)) {
     if ((allowed as readonly string[]).includes(key)) {
-      const val = (raw as Record<string, unknown>)[key]
-      result[key as T] = typeof val === "number" ? val : 0
+      const val = (raw as Record<string, unknown>)[key];
+      result[key as T] = typeof val === "number" ? val : 0;
     }
   }
-  return result
+  return result;
 }
 
 function normalizeFacet(sessionId: string, raw: unknown): SessionFacet {
-  if (!raw || typeof raw !== "object") throw new Error("Invalid facet JSON")
-  const r = raw as Record<string, unknown>
+  if (!raw || typeof raw !== "object") throw new Error("Invalid facet JSON");
+  const r = raw as Record<string, unknown>;
 
   return {
     sessionId,
@@ -76,7 +76,7 @@ function normalizeFacet(sessionId: string, raw: unknown): SessionFacet {
     frictionDetail: String(r.friction_detail ?? r.frictionDetail ?? ""),
     primarySuccess: String(r.primary_success ?? r.primarySuccess ?? ""),
     briefSummary: String(r.brief_summary ?? r.briefSummary ?? ""),
-  }
+  };
 }
 
 export async function extractFacets(
@@ -87,31 +87,31 @@ export async function extractFacets(
   cache: FacetCache,
   onProgress?: (done: number, total: number) => void,
 ): Promise<Map<string, SessionFacet>> {
-  const result = new Map<string, SessionFacet>()
+  const result = new Map<string, SessionFacet>();
 
-  const uncached: string[] = []
+  const uncached: string[] = [];
   for (const id of sessionIds) {
     if (!config.force) {
-      const facet = cache.get(id)
+      const facet = cache.get(id);
       if (facet) {
-        result.set(id, facet)
-        continue
+        result.set(id, facet);
+        continue;
       }
     }
-    uncached.push(id)
+    uncached.push(id);
   }
 
-  const toProcess = config.force ? uncached : uncached.slice(0, MAX_NEW_SESSIONS)
-  const total = toProcess.length
-  if (total === 0) return result
+  const toProcess = config.force ? uncached : uncached.slice(0, MAX_NEW_SESSIONS);
+  const total = toProcess.length;
+  if (total === 0) return result;
 
-  let done = 0
+  let done = 0;
 
   await mapLimit(toProcess, config.concurrency, async (sessionId) => {
     try {
-      const transcript = reconstructTranscript(db, sessionId)
-      const prepared = await prepareTranscript(client, transcript, config.model)
-      const meta = getSessionMeta(db, sessionId)
+      const transcript = reconstructTranscript(db, sessionId);
+      const prepared = await prepareTranscript(client, transcript, config.model);
+      const meta = getSessionMeta(db, sessionId);
       const metaSummary = meta
         ? JSON.stringify({
             title: meta.title,
@@ -120,48 +120,48 @@ export async function extractFacets(
             cost: `$${meta.cost.toFixed(4)}`,
             agents: Object.keys(meta.agentCounts),
           })
-        : ""
+        : "";
 
-      const prompt = buildFacetPrompt(prepared, metaSummary)
-      const raw = await runLlm(client, { model: config.model, prompt })
-      const parsed = extractJson(raw)
-      const facet = normalizeFacet(sessionId, parsed)
+      const prompt = buildFacetPrompt(prepared, metaSummary);
+      const raw = await runLlm(client, { model: config.model, prompt });
+      const parsed = extractJson(raw);
+      const facet = normalizeFacet(sessionId, parsed);
 
-      cache.put(sessionId, facet)
-      result.set(sessionId, facet)
+      cache.put(sessionId, facet);
+      result.set(sessionId, facet);
     } catch {
       // Skip failed sessions — don't abort the whole pipeline
     } finally {
-      done++
-      onProgress?.(done, total)
+      done++;
+      onProgress?.(done, total);
     }
-  })
+  });
 
-  return result
+  return result;
 }
 
 function buildRollupData(
   facets: Map<string, SessionFacet>,
   stats: AggregatedStats,
 ): Record<string, unknown> {
-  const outcomeCounts: Record<string, number> = {}
-  const satisfactionCounts: Record<string, number> = {}
-  const frictionCounts: Record<string, number> = {}
-  const goalCounts: Record<string, number> = {}
-  const summaries: string[] = []
+  const outcomeCounts: Record<string, number> = {};
+  const satisfactionCounts: Record<string, number> = {};
+  const frictionCounts: Record<string, number> = {};
+  const goalCounts: Record<string, number> = {};
+  const summaries: string[] = [];
 
   for (const facet of facets.values()) {
-    if (facet.outcome) outcomeCounts[facet.outcome] = (outcomeCounts[facet.outcome] ?? 0) + 1
+    if (facet.outcome) outcomeCounts[facet.outcome] = (outcomeCounts[facet.outcome] ?? 0) + 1;
     for (const [k, v] of Object.entries(facet.satisfaction)) {
-      if (v) satisfactionCounts[k] = (satisfactionCounts[k] ?? 0) + 1
+      if (v) satisfactionCounts[k] = (satisfactionCounts[k] ?? 0) + 1;
     }
     for (const [k, v] of Object.entries(facet.frictionCounts)) {
-      if (v) frictionCounts[k] = (frictionCounts[k] ?? 0) + (v as number)
+      if (v) frictionCounts[k] = (frictionCounts[k] ?? 0) + (v as number);
     }
     for (const [k, v] of Object.entries(facet.goalCategories)) {
-      if (v) goalCounts[k] = (goalCounts[k] ?? 0) + 1
+      if (v) goalCounts[k] = (goalCounts[k] ?? 0) + 1;
     }
-    if (facet.briefSummary) summaries.push(facet.briefSummary)
+    if (facet.briefSummary) summaries.push(facet.briefSummary);
   }
 
   return {
@@ -183,7 +183,7 @@ function buildRollupData(
     friction_counts: frictionCounts,
     goal_category_counts: goalCounts,
     session_summaries: summaries.slice(0, 50),
-  }
+  };
 }
 
 const AGGREGATE_PROMPTS: Array<{ key: string; builder: (data: unknown) => string }> = [
@@ -194,7 +194,7 @@ const AGGREGATE_PROMPTS: Array<{ key: string; builder: (data: unknown) => string
   { key: "suggestions", builder: buildSuggestionsPrompt },
   { key: "tool_health", builder: buildToolHealthPrompt },
   { key: "horizon", builder: buildHorizonPrompt },
-]
+];
 
 export async function runAggregateAnalysis(
   facets: Map<string, SessionFacet>,
@@ -202,20 +202,20 @@ export async function runAggregateAnalysis(
   config: InsightsConfig,
   client: LlmClient,
 ): Promise<Record<string, unknown>> {
-  const rollupData = buildRollupData(facets, stats)
-  const results: Record<string, unknown> = {}
+  const rollupData = buildRollupData(facets, stats);
+  const results: Record<string, unknown> = {};
 
   await mapLimit(AGGREGATE_PROMPTS, config.concurrency, async ({ key, builder }) => {
     try {
-      const prompt = builder(rollupData)
-      const raw = await runLlm(client, { model: config.model, prompt })
-      results[key] = extractJson(raw)
+      const prompt = builder(rollupData);
+      const raw = await runLlm(client, { model: config.model, prompt });
+      results[key] = extractJson(raw);
     } catch {
-      results[key] = {}
+      results[key] = {};
     }
-  })
+  });
 
-  return results
+  return results;
 }
 
 export async function generateAtAGlance(
@@ -232,12 +232,12 @@ export async function generateAtAGlance(
     total_tokens: stats.totalTokens,
     top_tools: stats.topTools.slice(0, 5),
     top_agents: stats.topAgents.slice(0, 5),
-  }
+  };
   try {
-    const prompt = buildAtAGlancePrompt(aggregates, statsSummary)
-    const raw = await runLlm(client, { model: config.model, prompt })
-    return extractJson(raw) as Record<string, unknown>
+    const prompt = buildAtAGlancePrompt(aggregates, statsSummary);
+    const raw = await runLlm(client, { model: config.model, prompt });
+    return extractJson(raw) as Record<string, unknown>;
   } catch {
-    return {}
+    return {};
   }
 }

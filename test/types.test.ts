@@ -1,23 +1,23 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 import {
-  GOAL_CATEGORIES,
-  FRICTION_CATEGORIES,
-  SATISFACTION_LEVELS,
+  type AggregatedStats,
   DEFAULT_MODEL,
+  FRICTION_CATEGORIES,
+  GOAL_CATEGORIES,
+  type InsightsConfig,
+  SATISFACTION_LEVELS,
   type SessionFacet,
   type SessionMeta,
-  type AggregatedStats,
-  type InsightsConfig,
-} from "../src/types.ts"
+} from "../src/types.ts";
 
 describe("constants", () => {
   test("GOAL_CATEGORIES has 13 entries", () => {
-    expect(GOAL_CATEGORIES.length).toBe(13)
-  })
+    expect(GOAL_CATEGORIES.length).toBe(13);
+  });
 
   test("FRICTION_CATEGORIES has 12 entries", () => {
-    expect(FRICTION_CATEGORIES.length).toBe(12)
-  })
+    expect(FRICTION_CATEGORIES.length).toBe(12);
+  });
 
   test("GOAL_CATEGORIES contains all expected values", () => {
     const expected = [
@@ -34,11 +34,11 @@ describe("constants", () => {
       "write_docs",
       "deploy_infra",
       "warmup_minimal",
-    ] as const
+    ] as const;
     for (const cat of expected) {
-      expect(GOAL_CATEGORIES).toContain(cat)
+      expect(GOAL_CATEGORIES).toContain(cat);
     }
-  })
+  });
 
   test("FRICTION_CATEGORIES includes all required values", () => {
     const required = [
@@ -54,21 +54,21 @@ describe("constants", () => {
       "external_issue",
       "user_unclear",
       "other",
-    ] as const
+    ] as const;
     for (const value of required) {
-      expect(FRICTION_CATEGORIES).toContain(value)
+      expect(FRICTION_CATEGORIES).toContain(value);
     }
-  })
+  });
 
   test("SATISFACTION_LEVELS has 6 entries", () => {
-    expect(SATISFACTION_LEVELS.length).toBe(6)
-  })
+    expect(SATISFACTION_LEVELS.length).toBe(6);
+  });
 
   test("DEFAULT_MODEL is anthropic/claude-haiku-4-5", () => {
-    expect(DEFAULT_MODEL.providerID).toBe("anthropic")
-    expect(DEFAULT_MODEL.modelID).toBe("claude-haiku-4-5")
-  })
-})
+    expect(DEFAULT_MODEL.providerID).toBe("anthropic");
+    expect(DEFAULT_MODEL.modelID).toBe("claude-haiku-4-5");
+  });
+});
 
 describe("type compatibility", () => {
   test("SessionFacet accepts valid literal object", () => {
@@ -82,8 +82,8 @@ describe("type compatibility", () => {
       frictionDetail: "none",
       primarySuccess: "correct_code_edits",
       briefSummary: "Fixed the bug successfully.",
-    } satisfies SessionFacet
-  })
+    } satisfies SessionFacet;
+  });
 
   test("SessionMeta accepts valid literal object", () => {
     const _meta = {
@@ -106,8 +106,8 @@ describe("type compatibility", () => {
       modelCounts: { "claude-3-5-haiku": 5 },
       startTime: 1700000000000,
       endTime: 1700000900000,
-    } satisfies SessionMeta
-  })
+    } satisfies SessionMeta;
+  });
 
   test("AggregatedStats accepts valid literal object", () => {
     const _stats = {
@@ -120,13 +120,15 @@ describe("type compatibility", () => {
       topTools: [{ tool: "bash", count: 30 }],
       topAgents: [{ agent: "build", count: 8 }],
       topModels: [{ model: "claude-3-5-haiku", count: 8 }],
-      byAgentModel: [{ agent: "build", model: "claude-3-5-haiku", sessions: 8, cost: 0.4, tokens: 40000 }],
+      byAgentModel: [
+        { agent: "build", model: "claude-3-5-haiku", sessions: 8, cost: 0.4, tokens: 40000 },
+      ],
       toolErrorRates: [{ tool: "bash", totalCalls: 30, errorCalls: 2, errorRate: 0.067 }],
       cacheEfficiency: [{ model: "claude-3-5-haiku", cacheRatio: 0.3 }],
       costPer1k: [{ model: "claude-3-5-haiku", costPer1kTokens: 0.01 }],
       agentDelegation: [{ parentAgent: "build", childAgent: "explore", count: 3 }],
-    } satisfies AggregatedStats
-  })
+    } satisfies AggregatedStats;
+  });
 
   test("InsightsConfig accepts valid literal object", () => {
     const _config = {
@@ -136,6 +138,6 @@ describe("type compatibility", () => {
       concurrency: 4,
       projectOnly: false,
       output: "insights.html",
-    } satisfies InsightsConfig
-  })
-})
+    } satisfies InsightsConfig;
+  });
+});
