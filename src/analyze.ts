@@ -101,7 +101,7 @@ export async function extractFacets(
     uncached.push(id);
   }
 
-  const toProcess = config.force ? uncached : uncached.slice(0, MAX_NEW_SESSIONS);
+  const toProcess = uncached.slice(0, config.maxSessions);
   const total = toProcess.length;
   if (total === 0) return result;
 

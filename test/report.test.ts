@@ -80,6 +80,7 @@ function makeReportData(partial: Partial<ReportData> = {}): ReportData {
       days: 30,
       force: false,
       concurrency: 4,
+      maxSessions: 200,
       projectOnly: false,
       output: "./insights.html",
     },

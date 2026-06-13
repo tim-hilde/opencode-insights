@@ -19,18 +19,6 @@ Add to `~/.config/opencode/opencode.json`:
 }
 ```
 
-Or pin to a specific version (recommended — see [Why pin?](#why-pin)):
-
-```json
-{
-  "plugin": ["opencode-insights@0.1.0"]
-}
-```
-
-## Why pin?
-
-Pinning an exact version (e.g. `opencode-insights@1.0.0` instead of `opencode-insights`) defends against npm supply-chain attacks: a malicious release cannot be loaded until you explicitly opt in by bumping the version in your config.
-
 ## Usage
 
 In the opencode TUI:

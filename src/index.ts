@@ -15,12 +15,15 @@ interface PluginConfig {
   days: number;
   // Max parallel LLM calls during facet extraction (default: 4).
   concurrency: number;
+  // Maximum number of new sessions to process per run (default: 200).
+  maxSessions: number;
 }
 
 const DEFAULT_PLUGIN_CONFIG: PluginConfig = {
   model: "anthropic/claude-haiku-4-5",
   days: 30,
   concurrency: 4,
+  maxSessions: 200,
 };
 
 function loadPluginConfig(configDir: string): PluginConfig {
@@ -89,6 +92,7 @@ export const InsightsPlugin: Plugin = async (ctx) => {
             days: args.days ?? pluginConfig.days,
             force: args.force ?? false,
             concurrency: pluginConfig.concurrency,
+            maxSessions: pluginConfig.maxSessions,
             projectOnly: args.project ?? false,
             output: args.output ?? `${stateDir}/insights/report-${dateStamp()}.html`,
           };

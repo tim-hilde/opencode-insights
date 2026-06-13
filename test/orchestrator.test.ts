@@ -53,6 +53,33 @@ function makeClient(): LlmClient {
   };
 }
 
+function makeTwoSessionDb(dbPath: string, now: number): void {
+  const { Database } = require("bun:sqlite");
+  const setupDb = new Database(dbPath);
+  setupDb.run(`CREATE TABLE session (
+    id TEXT PRIMARY KEY, project_id TEXT NOT NULL DEFAULT 'p1', parent_id TEXT,
+    directory TEXT NOT NULL DEFAULT '/test', title TEXT NOT NULL, version TEXT NOT NULL DEFAULT '1',
+    slug TEXT NOT NULL DEFAULT 's', time_created INTEGER NOT NULL, time_updated INTEGER NOT NULL,
+    agent TEXT, model TEXT, cost REAL NOT NULL DEFAULT 0,
+    tokens_input INTEGER NOT NULL DEFAULT 0, tokens_output INTEGER NOT NULL DEFAULT 0,
+    tokens_reasoning INTEGER NOT NULL DEFAULT 0, tokens_cache_read INTEGER NOT NULL DEFAULT 0,
+    tokens_cache_write INTEGER NOT NULL DEFAULT 0, metadata TEXT
+  )`);
+  setupDb.run(
+    "CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT NOT NULL, time_created INTEGER NOT NULL, time_updated INTEGER NOT NULL, data TEXT NOT NULL)",
+  );
+  setupDb.run(
+    "CREATE TABLE part (id TEXT PRIMARY KEY, message_id TEXT NOT NULL, session_id TEXT NOT NULL, time_created INTEGER NOT NULL, time_updated INTEGER NOT NULL, data TEXT NOT NULL)",
+  );
+  setupDb.run(
+    `INSERT INTO session VALUES ('s1','p1',NULL,'/test','Fix bug','1','s1',${now - 86400000},${now - 86400000},'build','claude-sonnet',0.05,1000,500,0,0,0,NULL)`,
+  );
+  setupDb.run(
+    `INSERT INTO session VALUES ('s2','p1',NULL,'/test','Add feature','1','s2',${now - 86400000 * 2},${now - 86400000 * 2},'explore','claude-sonnet',0.03,800,400,0,0,0,NULL)`,
+  );
+  setupDb.close();
+}
+
 describe("runInsights", () => {
   it("produces HTML and JSON output files", async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "insights-test-"));
@@ -101,6 +128,7 @@ describe("runInsights", () => {
         days: 30,
         force: false,
         concurrency: 2,
+        maxSessions: 200,
         projectOnly: false,
         output: outputPath,
       };
@@ -154,6 +182,7 @@ describe("runInsights", () => {
           days: 30,
           force: false,
           concurrency: 2,
+          maxSessions: 200,
           projectOnly: false,
           output: outputPath,
         },
@@ -161,6 +190,72 @@ describe("runInsights", () => {
 
       expect(result.sessionCount).toBeGreaterThanOrEqual(0);
       expect(result.totalCost).toBeGreaterThanOrEqual(0);
+    } finally {
+      rmSync(tmpDir, { recursive: true });
+    }
+  });
+
+  it("analyzedCount reflects actual extracted sessions, not total", async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "insights-test-"));
+    try {
+      const dbPath = join(tmpDir, "test.db");
+      const now = Date.now();
+      makeTwoSessionDb(dbPath, now);
+
+      // Client that fails on the first prompt call so one facet extraction fails
+      let promptCalls = 0;
+      const flakeyClient: LlmClient = {
+        session: {
+          async create() {
+            return { data: { id: `s${promptCalls}` } };
+          },
+          async prompt() {
+            promptCalls++;
+            if (promptCalls === 1) throw new Error("first extraction fails");
+            // Subsequent calls return valid facet/aggregate/at-a-glance JSON
+            if (promptCalls <= 3)
+              return {
+                data: {
+                  info: {},
+                  parts: [{ type: "text", text: JSON.stringify(minimalFacet) }],
+                },
+              };
+            if (promptCalls > 9)
+              return {
+                data: {
+                  info: {},
+                  parts: [{ type: "text", text: JSON.stringify(minimalAtAGlance) }],
+                },
+              };
+            return {
+              data: {
+                info: {},
+                parts: [{ type: "text", text: JSON.stringify({ result: "ok" }) }],
+              },
+            };
+          },
+          async delete() {
+            return { data: {} };
+          },
+        },
+      };
+
+      const outputPath = join(tmpDir, "out.html");
+      const result = await runInsights(
+        { client: flakeyClient, stateDir: tmpDir, dbPath },
+        {
+          model: DEFAULT_MODEL,
+          days: 30,
+          force: false,
+          concurrency: 1,
+          maxSessions: 200,
+          projectOnly: false,
+          output: outputPath,
+        },
+      );
+
+      expect(result.sessionCount).toBe(2);
+      expect(result.analyzedCount).toBe(1);
     } finally {
       rmSync(tmpDir, { recursive: true });
     }

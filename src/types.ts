@@ -121,6 +121,7 @@ export interface InsightsConfig {
   days: number;
   force: boolean;
   concurrency: number;
+  maxSessions: number;
   projectOnly: boolean;
   output: string;
 }

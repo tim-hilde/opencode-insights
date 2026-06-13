@@ -18,6 +18,7 @@ const defaultConfig = {
   days: 30,
   force: false,
   concurrency: 2,
+  maxSessions: 2,
   projectOnly: false,
   output: "/tmp/out.html",
 };
@@ -186,6 +187,29 @@ describe("extractFacets", () => {
     };
 
     const results = await extractFacets(db, flakeyClient, ["s1", "s2"], defaultConfig, cache);
+
+    expect(results.size).toBe(1);
+    rmSync(cacheDir, { recursive: true });
+  });
+
+  it("applies maxSessions cap even when force=true", async () => {
+    const db = createFixtureDb();
+    const cacheDir = mkdtempSync(join(tmpdir(), "facet-cache-"));
+    const cache = new FacetCache(cacheDir);
+    const client = makeJsonClient(minimalFacet);
+
+    // force=true, maxSessions=1 → only 1 session processed despite 2 available
+    const results = await extractFacets(
+      db,
+      client,
+      ["s1", "s2"],
+      {
+        ...defaultConfig,
+        force: true,
+        maxSessions: 1,
+      },
+      cache,
+    );
 
     expect(results.size).toBe(1);
     rmSync(cacheDir, { recursive: true });

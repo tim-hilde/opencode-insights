@@ -184,4 +184,14 @@ describe("mapLimit", () => {
     });
     expect(indices.sort()).toEqual([0, 1, 2]);
   });
+
+  it("mapLimit with limit=0 still processes all items", async () => {
+    const results = await mapLimit([1, 2, 3], 0, async (x) => x * 2);
+    expect(results).toEqual([2, 4, 6]);
+  });
+
+  it("mapLimit with limit=-5 still processes all items", async () => {
+    const results = await mapLimit([1, 2], -5, async (x) => x + 1);
+    expect(results).toEqual([2, 3]);
+  });
 });

@@ -96,7 +96,7 @@ export async function mapLimit<T, R>(
     }
   }
 
-  const workers = Array.from({ length: Math.min(limit, items.length) }, worker);
+  const workers = Array.from({ length: Math.min(Math.max(1, limit), items.length) }, worker);
   await Promise.all(workers);
   return results;
 }
