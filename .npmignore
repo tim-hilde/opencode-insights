@@ -1,0 +1,12 @@
+src/
+test/
+scripts/
+docs/
+*.test.ts
+tsconfig.json
+tsup.config.ts
+biome.json
+lefthook.yml
+.releaserc.json
+.changeset/
+.github/

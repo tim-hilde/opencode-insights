@@ -5,3 +5,7 @@ dist/
 !test/*.html
 *.json.tmp
 bun.lockb
+*.tgz
+.DS_Store
+/docs/superpowers
+.worktrees/

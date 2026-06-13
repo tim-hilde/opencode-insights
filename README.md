@@ -15,15 +15,21 @@ Add to `~/.config/opencode/opencode.json`:
 
 ```json
 {
-  "plugin": ["file:/path/to/opencode-insights/src/index.ts"]
+  "plugin": ["opencode-insights@0.1.0"]
 }
 ```
 
-Or, for development, create `~/.config/opencode/plugins/insights.ts`:
+Or pin to a specific version (recommended — see [Why pin?](#why-pin)):
 
-```typescript
-export { InsightsPlugin as default } from "/path/to/opencode-insights/src/index.ts"
+```json
+{
+  "plugin": ["opencode-insights@0.1.0"]
+}
 ```
+
+## Why pin?
+
+Pinning an exact version (e.g. `opencode-insights@1.0.0` instead of `opencode-insights`) defends against npm supply-chain attacks: a malicious release cannot be loaded until you explicitly opt in by bumping the version in your config.
 
 ## Usage
 
