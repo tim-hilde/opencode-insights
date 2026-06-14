@@ -6,9 +6,16 @@ import { runInsights } from "./orchestrator.ts";
 import type { InsightsConfig, InsightsModel } from "./types.ts";
 
 export const InsightsPlugin: Plugin = async (ctx) => {
-  const initPaths = ((await ctx.client.path.get()) as { data: { config: string; state: string } })
-    .data;
-  const pluginConfig = loadPluginConfig(initPaths.config);
+  // Lazily resolve paths + config on first tool use. Calling ctx.client.path.get()
+  // at plugin-init time deadlocks: the server isn't ready to answer during loading.
+  let cached: { stateDir: string; pluginConfig: ReturnType<typeof loadPluginConfig> } | undefined;
+  async function resolveContext() {
+    if (cached) return cached;
+    const paths = ((await ctx.client.path.get()) as { data: { config: string; state: string } })
+      .data;
+    cached = { stateDir: paths.state, pluginConfig: loadPluginConfig(paths.config) };
+    return cached;
+  }
 
   return {
     async config(cfg) {
@@ -41,10 +48,10 @@ export const InsightsPlugin: Plugin = async (ctx) => {
           project: tool.schema.boolean().default(false).optional(),
         },
         async execute(args, toolCtx) {
+          const { stateDir, pluginConfig } = await resolveContext();
+
           // model precedence: --model arg > insights.json config
           const model: InsightsModel = parseModel(args.model ?? pluginConfig.model);
-
-          const stateDir = initPaths.state;
 
           const config: InsightsConfig = {
             model,
