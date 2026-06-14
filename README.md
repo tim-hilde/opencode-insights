@@ -17,7 +17,7 @@ Add to `~/.config/opencode/opencode.json`:
 
 ```json
 {
-  "plugin": ["@tim-hilde/opencode-insights@1.0.0"]
+  "plugin": ["@tim_hilde/opencode-insights@1.0.0"]
 }
 ```
 

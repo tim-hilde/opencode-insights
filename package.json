@@ -1,5 +1,5 @@
 {
-  "name": "@tim-hilde/opencode-insights",
+  "name": "@tim_hilde/opencode-insights",
   "publishConfig": {
     "access": "public"
   },
