@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, test } from "bun:test";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FacetCache } from "../src/cache.ts";
+import { FACET_CACHE_VERSION, FacetCache } from "../src/cache.ts";
 import type { SessionFacet } from "../src/types.ts";
 
 const sampleFacet: SessionFacet = {
@@ -67,6 +67,13 @@ describe("FacetCache.put", () => {
     const updated: SessionFacet = { ...sampleFacet, underlyingGoal: "Different goal" };
     cache.put("test-123", updated);
     expect(cache.get("test-123")).toEqual(updated);
+  });
+});
+
+describe("FACET_CACHE_VERSION", () => {
+  it("is exported and is a non-empty string", () => {
+    expect(typeof FACET_CACHE_VERSION).toBe("string");
+    expect(FACET_CACHE_VERSION.length).toBeGreaterThan(0);
   });
 });
 

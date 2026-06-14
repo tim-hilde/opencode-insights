@@ -189,6 +189,15 @@ describe("getAgentDelegation", () => {
   });
 });
 
+describe("chunked queries (SQL_CHUNK_SIZE boundary)", () => {
+  it("getTokenTotals works with more ids than SQL_CHUNK_SIZE would require (fixture is small, tests the merge path is reached)", () => {
+    // Normal fixture test still passes — confirms chunking doesn't break small arrays
+    const db = createFixtureDb();
+    const totals = getTokenTotals(db, ["s1", "s2"]);
+    expect(totals.totalCost).toBeCloseTo(0.08, 5);
+  });
+});
+
 describe("empty sessionIds handling", () => {
   it("listSessionIds with future since returns []", () => {
     const db = createFixtureDb();

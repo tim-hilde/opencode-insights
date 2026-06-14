@@ -10,6 +10,9 @@ import {
 import { join } from "node:path";
 import type { SessionFacet } from "./types.ts";
 
+/** Increment when SessionFacet schema changes to auto-invalidate old caches. */
+export const FACET_CACHE_VERSION = "v1";
+
 export class FacetCache {
   readonly dir: string;
 

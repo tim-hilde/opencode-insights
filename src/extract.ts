@@ -53,10 +53,8 @@ export function reconstructTranscript(db: Database, sessionId: string): string {
     if (part.type === "text" && part.text) {
       lines.push(`[${role}]: ${part.text}`);
     } else if (part.type === "tool" && part.tool) {
-      const toolName: string =
-        typeof part.tool === "string"
-          ? part.tool
-          : ((part.tool as { name?: string } | null)?.name ?? "unknown");
+      // opencode stores tool name as a scalar string in $.tool (confirmed against production DB)
+      const toolName: string = typeof part.tool === "string" ? part.tool : "unknown";
       const status: string =
         (part.state as { status?: string } | null | undefined)?.status ?? "unknown";
       lines.push(`[assistant]: Used ${toolName} (${status})`);

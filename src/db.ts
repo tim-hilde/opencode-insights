@@ -1,6 +1,20 @@
 import { Database } from "bun:sqlite";
 import type { SessionMeta } from "./types.ts";
 
+const SQL_CHUNK_SIZE = 500;
+
+/**
+ * Split an array into chunks of at most SQL_CHUNK_SIZE.
+ * Used to avoid SQLite SQLITE_LIMIT_VARIABLE_NUMBER on large IN(...) lists.
+ */
+function chunks<T>(arr: T[]): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += SQL_CHUNK_SIZE) {
+    result.push(arr.slice(i, i + SQL_CHUNK_SIZE));
+  }
+  return result;
+}
+
 export function openDb(path: string): Database {
   return new Database(path, { readonly: true });
 }
@@ -65,47 +79,66 @@ export function getTokenTotals(db: Database, sessionIds: string[]): TokenTotals 
       totalMessages: 0,
     };
   }
-  const placeholders = sessionIds.map(() => "?").join(",");
-  const row = db
-    .query<
-      {
-        cost: number;
-        input: number;
-        output: number;
-        reasoning: number;
-        cache_read: number;
-        cache_write: number;
-        total: number;
-      },
-      string[]
-    >(`
-    SELECT
-      SUM(cost) as cost,
-      SUM(tokens_input) as input,
-      SUM(tokens_output) as output,
-      SUM(tokens_reasoning) as reasoning,
-      SUM(tokens_cache_read) as cache_read,
-      SUM(tokens_cache_write) as cache_write,
-      SUM(tokens_input + tokens_output + tokens_reasoning + tokens_cache_read) as total
-    FROM session WHERE id IN (${placeholders})
-  `)
-    .get(...sessionIds);
 
-  const msgRow = db
-    .query<{ cnt: number }, string[]>(`
-    SELECT COUNT(*) as cnt FROM message WHERE session_id IN (${placeholders})
-  `)
-    .get(...sessionIds);
+  let totalCost = 0;
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalReasoning = 0;
+  let totalCacheRead = 0;
+  let totalCacheWrite = 0;
+  let totalTokensSum = 0;
+  let totalMessages = 0;
+
+  for (const chunk of chunks(sessionIds)) {
+    const placeholders = chunk.map(() => "?").join(",");
+    const row = db
+      .query<
+        {
+          cost: number;
+          input: number;
+          output: number;
+          reasoning: number;
+          cache_read: number;
+          cache_write: number;
+          total: number;
+        },
+        string[]
+      >(`
+      SELECT
+        SUM(cost) as cost,
+        SUM(tokens_input) as input,
+        SUM(tokens_output) as output,
+        SUM(tokens_reasoning) as reasoning,
+        SUM(tokens_cache_read) as cache_read,
+        SUM(tokens_cache_write) as cache_write,
+        SUM(tokens_input + tokens_output + tokens_reasoning + tokens_cache_read) as total
+      FROM session WHERE id IN (${placeholders})
+    `)
+      .get(...chunk);
+    const msgRow = db
+      .query<{ cnt: number }, string[]>(`
+      SELECT COUNT(*) as cnt FROM message WHERE session_id IN (${placeholders})
+    `)
+      .get(...chunk);
+    totalCost += row?.cost ?? 0;
+    totalInput += row?.input ?? 0;
+    totalOutput += row?.output ?? 0;
+    totalReasoning += row?.reasoning ?? 0;
+    totalCacheRead += row?.cache_read ?? 0;
+    totalCacheWrite += row?.cache_write ?? 0;
+    totalTokensSum += row?.total ?? 0;
+    totalMessages += msgRow?.cnt ?? 0;
+  }
 
   return {
-    totalCost: row?.cost ?? 0,
-    totalTokensInput: row?.input ?? 0,
-    totalTokensOutput: row?.output ?? 0,
-    totalTokensReasoning: row?.reasoning ?? 0,
-    totalTokensCacheRead: row?.cache_read ?? 0,
-    totalTokensCacheWrite: row?.cache_write ?? 0,
-    totalTokens: row?.total ?? 0,
-    totalMessages: msgRow?.cnt ?? 0,
+    totalCost,
+    totalTokensInput: totalInput,
+    totalTokensOutput: totalOutput,
+    totalTokensReasoning: totalReasoning,
+    totalTokensCacheRead: totalCacheRead,
+    totalTokensCacheWrite: totalCacheWrite,
+    totalTokens: totalTokensSum,
+    totalMessages,
   };
 }
 
@@ -119,21 +152,23 @@ export interface AgentModelRow {
 
 export function getByAgentModel(db: Database, sessionIds: string[]): AgentModelRow[] {
   if (sessionIds.length === 0) return [];
-  const placeholders = sessionIds.map(() => "?").join(",");
-  return db
-    .query<AgentModelRow, string[]>(`
-    SELECT
-      COALESCE(agent, 'unknown') as agent,
-      COALESCE(model, 'unknown') as model,
-      COUNT(*) as sessions,
-      SUM(cost) as cost,
-      SUM(tokens_input + tokens_output + tokens_reasoning + tokens_cache_read) as tokens
-    FROM session
-    WHERE id IN (${placeholders})
-    GROUP BY agent, model
-    ORDER BY cost DESC
-  `)
-    .all(...sessionIds);
+  return chunks(sessionIds).flatMap((chunk) => {
+    const placeholders = chunk.map(() => "?").join(",");
+    return db
+      .query<AgentModelRow, string[]>(`
+      SELECT
+        COALESCE(agent, 'unknown') as agent,
+        COALESCE(model, 'unknown') as model,
+        COUNT(*) as sessions,
+        SUM(cost) as cost,
+        SUM(tokens_input + tokens_output + tokens_reasoning + tokens_cache_read) as tokens
+      FROM session
+      WHERE id IN (${placeholders})
+      GROUP BY agent, model
+      ORDER BY cost DESC
+    `)
+      .all(...chunk);
+  });
 }
 
 export interface ToolErrorRateRow {
@@ -145,27 +180,37 @@ export interface ToolErrorRateRow {
 
 export function getToolErrorRates(db: Database, sessionIds: string[]): ToolErrorRateRow[] {
   if (sessionIds.length === 0) return [];
-  const placeholders = sessionIds.map(() => "?").join(",");
-  const rows = db
-    .query<{ tool: string; total: number; errors: number }, string[]>(`
-    SELECT
-      json_extract(data, '$.tool') as tool,
-      COUNT(*) as total,
-      SUM(CASE WHEN json_extract(data, '$.state.status') = 'error' THEN 1 ELSE 0 END) as errors
-    FROM part
-    WHERE session_id IN (${placeholders})
-      AND json_extract(data, '$.type') = 'tool'
-      AND json_extract(data, '$.tool') IS NOT NULL
-    GROUP BY tool
-    ORDER BY total DESC
-  `)
-    .all(...sessionIds);
-  return rows.map((r) => ({
-    tool: r.tool,
-    totalCalls: r.total,
-    errorCalls: r.errors,
-    errorRate: r.total > 0 ? r.errors / r.total : 0,
-  }));
+  const rawRows = chunks(sessionIds).flatMap((chunk) => {
+    const placeholders = chunk.map(() => "?").join(",");
+    return db
+      .query<{ tool: string; total: number; errors: number }, string[]>(`
+      SELECT
+        json_extract(data, '$.tool') as tool,
+        COUNT(*) as total,
+        SUM(CASE WHEN json_extract(data, '$.state.status') = 'error' THEN 1 ELSE 0 END) as errors
+      FROM part
+      WHERE session_id IN (${placeholders})
+        AND json_extract(data, '$.type') = 'tool'
+        AND json_extract(data, '$.tool') IS NOT NULL
+      GROUP BY tool
+      ORDER BY total DESC
+    `)
+      .all(...chunk);
+  });
+  // Merge counts across chunks
+  const map = new Map<string, { total: number; errors: number }>();
+  for (const r of rawRows) {
+    const existing = map.get(r.tool) ?? { total: 0, errors: 0 };
+    map.set(r.tool, { total: existing.total + r.total, errors: existing.errors + r.errors });
+  }
+  return Array.from(map.entries())
+    .sort(([, a], [, b]) => b.total - a.total)
+    .map(([tool, { total, errors }]) => ({
+      tool,
+      totalCalls: total,
+      errorCalls: errors,
+      errorRate: total > 0 ? errors / total : 0,
+    }));
 }
 
 export interface CacheEfficiencyRow {
@@ -175,21 +220,32 @@ export interface CacheEfficiencyRow {
 
 export function getCacheEfficiency(db: Database, sessionIds: string[]): CacheEfficiencyRow[] {
   if (sessionIds.length === 0) return [];
-  const placeholders = sessionIds.map(() => "?").join(",");
-  const rows = db
-    .query<{ model: string; cache_read: number; input: number }, string[]>(`
-    SELECT
-      COALESCE(model, 'unknown') as model,
-      SUM(tokens_cache_read) as cache_read,
-      SUM(tokens_input) as input
-    FROM session
-    WHERE id IN (${placeholders})
-    GROUP BY model
-  `)
-    .all(...sessionIds);
-  return rows.map((r) => ({
-    model: r.model,
-    cacheRatio: r.input + r.cache_read > 0 ? r.cache_read / (r.input + r.cache_read) : 0,
+  const rawRows = chunks(sessionIds).flatMap((chunk) => {
+    const placeholders = chunk.map(() => "?").join(",");
+    return db
+      .query<{ model: string; cache_read: number; input: number }, string[]>(`
+      SELECT
+        COALESCE(model, 'unknown') as model,
+        SUM(tokens_cache_read) as cache_read,
+        SUM(tokens_input) as input
+      FROM session
+      WHERE id IN (${placeholders})
+      GROUP BY model
+    `)
+      .all(...chunk);
+  });
+  // Merge sums across chunks
+  const map = new Map<string, { cache_read: number; input: number }>();
+  for (const r of rawRows) {
+    const existing = map.get(r.model) ?? { cache_read: 0, input: 0 };
+    map.set(r.model, {
+      cache_read: existing.cache_read + r.cache_read,
+      input: existing.input + r.input,
+    });
+  }
+  return Array.from(map.entries()).map(([model, { cache_read, input }]) => ({
+    model,
+    cacheRatio: input + cache_read > 0 ? cache_read / (input + cache_read) : 0,
   }));
 }
 
@@ -200,23 +256,33 @@ export interface CostPer1kRow {
 
 export function getCostPer1k(db: Database, sessionIds: string[]): CostPer1kRow[] {
   if (sessionIds.length === 0) return [];
-  const placeholders = sessionIds.map(() => "?").join(",");
-  const rows = db
-    .query<{ model: string; cost: number; tokens: number }, string[]>(`
-    SELECT
-      COALESCE(model, 'unknown') as model,
-      SUM(cost) as cost,
-      SUM(tokens_input + tokens_output + tokens_reasoning + tokens_cache_read) as tokens
-    FROM session
-    WHERE id IN (${placeholders})
-    GROUP BY model
-    HAVING tokens > 0
-  `)
-    .all(...sessionIds);
-  return rows.map((r) => ({
-    model: r.model,
-    costPer1kTokens: (r.cost / r.tokens) * 1000,
-  }));
+  const rawRows = chunks(sessionIds).flatMap((chunk) => {
+    const placeholders = chunk.map(() => "?").join(",");
+    return db
+      .query<{ model: string; cost: number; tokens: number }, string[]>(`
+      SELECT
+        COALESCE(model, 'unknown') as model,
+        SUM(cost) as cost,
+        SUM(tokens_input + tokens_output + tokens_reasoning + tokens_cache_read) as tokens
+      FROM session
+      WHERE id IN (${placeholders})
+      GROUP BY model
+      HAVING tokens > 0
+    `)
+      .all(...chunk);
+  });
+  // Merge sums across chunks, then compute ratio
+  const map = new Map<string, { cost: number; tokens: number }>();
+  for (const r of rawRows) {
+    const existing = map.get(r.model) ?? { cost: 0, tokens: 0 };
+    map.set(r.model, { cost: existing.cost + r.cost, tokens: existing.tokens + r.tokens });
+  }
+  return Array.from(map.entries())
+    .filter(([, { tokens }]) => tokens > 0)
+    .map(([model, { cost, tokens }]) => ({
+      model,
+      costPer1kTokens: (cost / tokens) * 1000,
+    }));
 }
 
 export interface AgentDelegationRow {
@@ -227,21 +293,38 @@ export interface AgentDelegationRow {
 
 export function getAgentDelegation(db: Database, sessionIds: string[]): AgentDelegationRow[] {
   if (sessionIds.length === 0) return [];
-  const placeholders = sessionIds.map(() => "?").join(",");
-  const params = [...sessionIds, ...sessionIds];
-  return db
-    .query<AgentDelegationRow, string[]>(`
-    SELECT
-      COALESCE(parent.agent, 'unknown') as parentAgent,
-      COALESCE(child.agent, 'unknown') as childAgent,
-      COUNT(*) as count
-    FROM session child
-    JOIN session parent ON child.parent_id = parent.id
-    WHERE child.id IN (${placeholders}) OR parent.id IN (${placeholders})
-    GROUP BY parentAgent, childAgent
-    ORDER BY count DESC
-  `)
-    .all(...params);
+  const countMap = new Map<string, number>();
+  for (const chunk of chunks(sessionIds)) {
+    const placeholders = chunk.map(() => "?").join(",");
+    const params = [...chunk, ...chunk];
+    const rows = db
+      .query<AgentDelegationRow, string[]>(`
+      SELECT
+        COALESCE(parent.agent, 'unknown') as parentAgent,
+        COALESCE(child.agent, 'unknown') as childAgent,
+        COUNT(*) as count
+      FROM session child
+      JOIN session parent ON child.parent_id = parent.id
+      WHERE child.id IN (${placeholders}) OR parent.id IN (${placeholders})
+      GROUP BY parentAgent, childAgent
+      ORDER BY count DESC
+    `)
+      .all(...params);
+    for (const r of rows) {
+      const key = `${r.parentAgent}::${r.childAgent}`;
+      countMap.set(key, (countMap.get(key) ?? 0) + r.count);
+    }
+  }
+  return Array.from(countMap.entries())
+    .map(([key, count]) => {
+      const [parentAgent, childAgent] = key.split("::");
+      return {
+        parentAgent: parentAgent ?? "unknown",
+        childAgent: childAgent ?? "unknown",
+        count,
+      };
+    })
+    .sort((a, b) => b.count - a.count);
 }
 
 export interface PartWithRole {
@@ -266,13 +349,21 @@ export function getSessionDateRange(
   sessionIds: string[],
 ): { from: number; to: number } {
   if (sessionIds.length === 0) return { from: 0, to: 0 };
-  const placeholders = sessionIds.map(() => "?").join(",");
-  const row = db
-    .query<{ from_ts: number; to_ts: number }, string[]>(
-      `SELECT MIN(time_created) as from_ts, MAX(time_created) as to_ts FROM session WHERE id IN (${placeholders})`,
-    )
-    .get(...sessionIds);
-  return { from: row?.from_ts ?? 0, to: row?.to_ts ?? 0 };
+  let from = Number.POSITIVE_INFINITY;
+  let to = 0;
+  for (const chunk of chunks(sessionIds)) {
+    const placeholders = chunk.map(() => "?").join(",");
+    const row = db
+      .query<{ from_ts: number; to_ts: number }, string[]>(
+        `SELECT MIN(time_created) as from_ts, MAX(time_created) as to_ts FROM session WHERE id IN (${placeholders})`,
+      )
+      .get(...chunk);
+    if (row) {
+      if (row.from_ts < from) from = row.from_ts;
+      if (row.to_ts > to) to = row.to_ts;
+    }
+  }
+  return { from: from === Number.POSITIVE_INFINITY ? 0 : from, to };
 }
 
 export function getSessionMeta(db: Database, sessionId: string): SessionMeta | null {

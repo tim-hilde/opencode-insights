@@ -534,7 +534,7 @@ export function generateReport(data: ReportData, insightsJson: string): string {
   const dateFrom = fmtDate(stats.dateRange.from);
   const dateTo = fmtDate(stats.dateRange.to);
 
-  const safeJson = insightsJson.replace(/<\/script>/gi, "<\\/script>");
+  const safeJson = insightsJson.replace(/</g, "\\u003c");
 
   const navLinks = [
     ["#at-a-glance", "At a Glance"],

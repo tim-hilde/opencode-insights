@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { extractFacets, generateAtAGlance, runAggregateAnalysis } from "./analyze.ts";
-import { FacetCache } from "./cache.ts";
+import { FACET_CACHE_VERSION, FacetCache } from "./cache.ts";
 import { openDb, resolveDbPath } from "./db.ts";
 import { aggregateAll, filterSessions } from "./extract.ts";
 import type { LlmClient } from "./llm.ts";
@@ -39,7 +39,7 @@ export async function runInsights(
 
     const stats = aggregateAll(db, sessionIds);
 
-    const cache = new FacetCache(join(deps.stateDir, "insights", "facets"));
+    const cache = new FacetCache(join(deps.stateDir, "insights", "facets", FACET_CACHE_VERSION));
     if (config.force) cache.clear();
 
     const facets = await extractFacets(db, deps.client, sessionIds, config, cache, (done, total) =>

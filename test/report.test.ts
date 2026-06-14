@@ -167,4 +167,20 @@ describe("generateReport", () => {
     expect(html).toContain("exportJson");
     expect(html).toContain("insights.json");
   });
+
+  it("JSON island has no raw < character (prevents </script breakout)", () => {
+    const html = generateReport(makeReportData(), '{"x":"</script>"}');
+    // Extract just the JSON content between the opening tag's > and the closing </script>
+    const match = html.match(
+      /<script type="application\/json" id="insights-data">([\s\S]*?)<\/script>/,
+    );
+    expect(match).not.toBeNull();
+    if (!match) return;
+    const jsonContent = match[1];
+    // The JSON content must not contain a literal < (only \u003c)
+    expect(jsonContent).not.toContain("<");
+    // Verify the JSON still parses correctly
+    const parsed = JSON.parse(jsonContent);
+    expect(parsed.x).toBe("</script>");
+  });
 });
