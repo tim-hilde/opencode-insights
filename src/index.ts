@@ -76,6 +76,15 @@ export const InsightsPlugin: Plugin = async (ctx) => {
             },
           );
 
+          // Open the report in the default browser (non-fatal — fails silently in CI/headless)
+          const opener =
+            process.platform === "darwin"
+              ? "open"
+              : process.platform === "win32"
+                ? "start"
+                : "xdg-open";
+          ctx.$`${opener} ${result.reportPath}`.catch(() => {});
+
           await ctx.client.tui.showToast({
             body: { message: `Insights report ready: ${result.reportPath}`, variant: "success" },
           });
