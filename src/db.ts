@@ -293,38 +293,41 @@ export interface AgentDelegationRow {
 
 export function getAgentDelegation(db: Database, sessionIds: string[]): AgentDelegationRow[] {
   if (sessionIds.length === 0) return [];
-  const countMap = new Map<string, number>();
+
+  const countMap = new Map<string, { parentAgent: string; childAgent: string; count: number }>();
+
   for (const chunk of chunks(sessionIds)) {
     const placeholders = chunk.map(() => "?").join(",");
-    const params = [...chunk, ...chunk];
+    // Query by parent.id: finds all child (sub-agent) sessions of the root sessions in sessionIds.
+    // Using parent.id IN (...) avoids double-counting across chunks — each root session
+    // is in exactly one chunk, and its children are always found via the JOIN.
     const rows = db
-      .query<AgentDelegationRow, string[]>(`
-      SELECT
-        COALESCE(parent.agent, 'unknown') as parentAgent,
-        COALESCE(child.agent, 'unknown') as childAgent,
-        COUNT(*) as count
-      FROM session child
-      JOIN session parent ON child.parent_id = parent.id
-      WHERE child.id IN (${placeholders}) OR parent.id IN (${placeholders})
-      GROUP BY parentAgent, childAgent
-      ORDER BY count DESC
-    `)
-      .all(...params);
+      .query<AgentDelegationRow, string[]>(
+        `
+        SELECT
+          COALESCE(parent.agent, 'unknown') as parentAgent,
+          COALESCE(child.agent, 'unknown') as childAgent,
+          COUNT(*) as count
+        FROM session child
+        JOIN session parent ON child.parent_id = parent.id
+        WHERE parent.id IN (${placeholders})
+        GROUP BY parentAgent, childAgent
+        `,
+      )
+      .all(...chunk);
+
     for (const r of rows) {
       const key = `${r.parentAgent}::${r.childAgent}`;
-      countMap.set(key, (countMap.get(key) ?? 0) + r.count);
+      const existing = countMap.get(key);
+      if (existing) {
+        existing.count += r.count;
+      } else {
+        countMap.set(key, { parentAgent: r.parentAgent, childAgent: r.childAgent, count: r.count });
+      }
     }
   }
-  return Array.from(countMap.entries())
-    .map(([key, count]) => {
-      const [parentAgent, childAgent] = key.split("::");
-      return {
-        parentAgent: parentAgent ?? "unknown",
-        childAgent: childAgent ?? "unknown",
-        count,
-      };
-    })
-    .sort((a, b) => b.count - a.count);
+
+  return Array.from(countMap.values()).sort((a, b) => b.count - a.count);
 }
 
 export interface PartWithRole {

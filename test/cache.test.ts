@@ -71,9 +71,8 @@ describe("FacetCache.put", () => {
 });
 
 describe("FACET_CACHE_VERSION", () => {
-  it("is exported and is a non-empty string", () => {
-    expect(typeof FACET_CACHE_VERSION).toBe("string");
-    expect(FACET_CACHE_VERSION.length).toBeGreaterThan(0);
+  it("is exported as 'v1'", () => {
+    expect(FACET_CACHE_VERSION).toBe("v1");
   });
 });
 
