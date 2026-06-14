@@ -1,6 +1,6 @@
 {
   "name": "opencode-insights",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "OpenCode plugin that analyses your session history and generates an HTML insights report",
   "keywords": [
     "opencode",
