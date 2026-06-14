@@ -100,7 +100,7 @@ function keyInsight(text: unknown): string {
 function renderAtAGlance(atAGlance: Record<string, unknown>): string {
   const glanceItem = (key: string, label: string) => {
     const val = atAGlance[key];
-    const content = val != null ? esc(val) : `<span class="muted">(analysis unavailable)</span>`;
+    const content = val != null ? esc(val) : unavailable();
     return `<div class="glance-item">
       <div class="glance-label">${label}</div>
       <div>${content}</div>

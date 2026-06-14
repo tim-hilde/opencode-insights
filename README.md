@@ -6,10 +6,12 @@ Registers a `/insights` slash command that:
 
 - Reads sessions from opencode's SQLite database
 - Extracts per-session facets via LLM (with caching)
-- Runs 8 aggregate analysis prompts
+- Runs 7 aggregate analysis prompts + an at-a-glance synthesis
 - Generates a self-contained HTML report + diffable `insights.json`
 
 ## Installation
+
+> **Runtime:** Requires [Bun](https://bun.sh). The `engines.node` field in `package.json` is npm registry metadata only — the plugin uses `bun:sqlite` and cannot run under plain Node.js.
 
 Add to `~/.config/opencode/opencode.json`:
 

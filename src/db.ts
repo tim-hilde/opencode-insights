@@ -111,6 +111,7 @@ export function getTokenTotals(db: Database, sessionIds: string[]): TokenTotals 
         SUM(tokens_reasoning) as reasoning,
         SUM(tokens_cache_read) as cache_read,
         SUM(tokens_cache_write) as cache_write,
+        -- cache_write excluded: it's billed separately and inflates perceived usage
         SUM(tokens_input + tokens_output + tokens_reasoning + tokens_cache_read) as total
       FROM session WHERE id IN (${placeholders})
     `)
@@ -161,6 +162,7 @@ export function getByAgentModel(db: Database, sessionIds: string[]): AgentModelR
         COALESCE(model, 'unknown') as model,
         COUNT(*) as sessions,
         SUM(cost) as cost,
+        -- cache_write intentionally excluded (see getTokenTotals)
         SUM(tokens_input + tokens_output + tokens_reasoning + tokens_cache_read) as tokens
       FROM session
       WHERE id IN (${placeholders})
@@ -263,6 +265,7 @@ export function getCostPer1k(db: Database, sessionIds: string[]): CostPer1kRow[]
       SELECT
         COALESCE(model, 'unknown') as model,
         SUM(cost) as cost,
+        -- cache_write intentionally excluded (see getTokenTotals)
         SUM(tokens_input + tokens_output + tokens_reasoning + tokens_cache_read) as tokens
       FROM session
       WHERE id IN (${placeholders})

@@ -23,6 +23,12 @@ const CHUNK_SIZE = 25000;
 const PASSTHROUGH = 30000;
 const MAX_NEW_SESSIONS = 200;
 
+/** Max parallel chunk-summary LLM calls inside prepareTranscript.
+ *  Note: each facet extraction already runs config.concurrency workers,
+ *  so effective parallel LLM calls = config.concurrency × CHUNK_CONCURRENCY.
+ */
+const CHUNK_CONCURRENCY = 1;
+
 export async function prepareTranscript(
   client: LlmClient,
   transcript: string,
@@ -36,7 +42,7 @@ export async function prepareTranscript(
   }
 
   try {
-    const summaries = await mapLimit(chunks, 2, async (chunk) => {
+    const summaries = await mapLimit(chunks, CHUNK_CONCURRENCY, async (chunk) => {
       const prompt = buildChunkSummaryPrompt(chunk);
       return runLlm(client, { model, prompt });
     });
