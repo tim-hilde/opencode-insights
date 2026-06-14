@@ -8,7 +8,7 @@ const version = pkg.version;
 const readmePath = resolve(root, "README.md");
 const readme = readFileSync(readmePath, "utf8");
 const updated = readme.replace(
-  /(opencode-insights@)[^"'`\s]+/g,
+  /(@tim-hilde\/opencode-insights@)[^"'`\s]+/g,
   `$1${version}`,
 );
 
