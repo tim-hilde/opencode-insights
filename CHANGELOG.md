@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/tim-hilde/opencode-insights/compare/v1.0.0...v1.0.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* lazy-resolve client paths to avoid plugin-init deadlock ([8401976](https://github.com/tim-hilde/opencode-insights/commit/8401976c1f9fe2e3256c808443aa8bf728d7a8f8))
+
 # 1.0.0 (2026-06-14)
 
 
