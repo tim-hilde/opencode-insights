@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/tim-hilde/opencode-insights/compare/v1.0.1...v1.0.2) (2026-06-14)
+
+
+### Bug Fixes
+
+* resolve opencode.db from XDG data dir, not state dir ([d9e2157](https://github.com/tim-hilde/opencode-insights/commit/d9e2157b2dccca00602a68e71b33158e7242ec98))
+
 ## [1.0.1](https://github.com/tim-hilde/opencode-insights/compare/v1.0.0...v1.0.1) (2026-06-14)
 
 
