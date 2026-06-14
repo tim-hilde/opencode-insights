@@ -1,50 +1,9 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import type { Plugin } from "@opencode-ai/plugin";
 import { tool } from "@opencode-ai/plugin";
+import { dateStamp, loadPluginConfig, parseModel } from "./config.ts";
 import type { LlmClient } from "./llm.ts";
 import { runInsights } from "./orchestrator.ts";
-import { DEFAULT_MODEL } from "./types.ts";
 import type { InsightsConfig, InsightsModel } from "./types.ts";
-
-interface PluginConfig {
-  // LLM used for all analysis calls. Format: "providerID/modelID".
-  // Haiku-class models are recommended — cheap and fast enough for JSON extraction.
-  model: string;
-  // How many days of session history to analyse (default: 30).
-  days: number;
-  // Max parallel LLM calls during facet extraction (default: 4).
-  concurrency: number;
-  // Maximum number of new sessions to process per run (default: 200).
-  maxSessions: number;
-}
-
-const DEFAULT_PLUGIN_CONFIG: PluginConfig = {
-  model: "anthropic/claude-haiku-4-5",
-  days: 30,
-  concurrency: 4,
-  maxSessions: 200,
-};
-
-function loadPluginConfig(configDir: string): PluginConfig {
-  const path = join(configDir, "insights.json");
-  if (!existsSync(path)) {
-    // First run — write defaults so the user can see and edit them.
-    try {
-      writeFileSync(path, `${JSON.stringify(DEFAULT_PLUGIN_CONFIG, null, 2)}\n`, "utf-8");
-    } catch {
-      // Config dir might not be writable (CI, read-only mount). Silently continue.
-    }
-    return { ...DEFAULT_PLUGIN_CONFIG };
-  }
-  try {
-    const parsed = JSON.parse(readFileSync(path, "utf-8")) as Partial<PluginConfig>;
-    // Merge with defaults so any missing keys still work.
-    return { ...DEFAULT_PLUGIN_CONFIG, ...parsed };
-  } catch {
-    return { ...DEFAULT_PLUGIN_CONFIG };
-  }
-}
 
 export const InsightsPlugin: Plugin = async (ctx) => {
   const initPaths = ((await ctx.client.path.get()) as { data: { config: string; state: string } })
@@ -147,16 +106,5 @@ export const InsightsPlugin: Plugin = async (ctx) => {
     },
   };
 };
-
-function parseModel(str?: string): { providerID: string; modelID: string } {
-  if (!str) return DEFAULT_MODEL;
-  const slash = str.indexOf("/");
-  if (slash === -1) return { providerID: "anthropic", modelID: str };
-  return { providerID: str.slice(0, slash), modelID: str.slice(slash + 1) };
-}
-
-function dateStamp(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export default InsightsPlugin;
