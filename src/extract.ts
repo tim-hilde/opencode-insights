@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { sep } from "node:path";
 import type { AgentModelRow } from "./db.ts";
 import {
   getAgentDelegation,
@@ -27,8 +28,12 @@ export function filterSessions(db: Database, opts: FilterOptions = {}): string[]
   }
 
   const rows = listSessionIdsWithDir(db, since);
-  // biome-ignore lint/style/noNonNullAssertion: opts.projectDir is checked truthy above
-  return rows.filter((r) => r.directory.startsWith(opts.projectDir!)).map((r) => r.id);
+  return rows
+    .filter(
+      // biome-ignore lint/style/noNonNullAssertion: opts.projectDir is checked truthy above
+      (r) => r.directory === opts.projectDir || r.directory.startsWith(`${opts.projectDir!}${sep}`),
+    )
+    .map((r) => r.id);
 }
 
 export function reconstructTranscript(db: Database, sessionId: string): string {

@@ -70,7 +70,9 @@ export async function runInsights(
     );
 
     const reportPath = config.output;
-    const jsonPath = config.output.replace(/\.html$/, ".json");
+    const jsonPath = reportPath.endsWith(".html")
+      ? `${reportPath.slice(0, -5)}.json`
+      : `${reportPath}.json`;
 
     mkdirSync(dirname(reportPath), { recursive: true });
     writeFileSync(reportPath, html, "utf-8");

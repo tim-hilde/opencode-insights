@@ -195,6 +195,35 @@ describe("runInsights", () => {
     }
   });
 
+  it("jsonPath is always distinct from reportPath when output has no .html extension", async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "insights-test-"));
+    try {
+      const dbPath = join(tmpDir, "test.db");
+      const now = Date.now();
+      makeTwoSessionDb(dbPath, now);
+
+      const outputPath = join(tmpDir, "report");
+      const result = await runInsights(
+        { client: makeClient(), stateDir: tmpDir, dbPath },
+        {
+          model: DEFAULT_MODEL,
+          days: 30,
+          force: false,
+          concurrency: 2,
+          maxSessions: 200,
+          projectOnly: false,
+          output: outputPath,
+        },
+      );
+
+      expect(result.reportPath).toBe(outputPath);
+      expect(result.jsonPath).not.toBe(result.reportPath);
+      expect(result.jsonPath).toBe(`${result.reportPath}.json`);
+    } finally {
+      rmSync(tmpDir, { recursive: true });
+    }
+  });
+
   it("analyzedCount reflects actual extracted sessions, not total", async () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "insights-test-"));
     try {
