@@ -8,12 +8,16 @@ import type { InsightsConfig, InsightsModel } from "./types.ts";
 export const InsightsPlugin: Plugin = async (ctx) => {
   // Lazily resolve paths + config on first tool use. Calling ctx.client.path.get()
   // at plugin-init time deadlocks: the server isn't ready to answer during loading.
-  let cached: { stateDir: string; pluginConfig: ReturnType<typeof loadPluginConfig> } | undefined;
+  let cached: { dataDir: string; pluginConfig: ReturnType<typeof loadPluginConfig> } | undefined;
   async function resolveContext() {
     if (cached) return cached;
     const paths = ((await ctx.client.path.get()) as { data: { config: string; state: string } })
       .data;
-    cached = { stateDir: paths.state, pluginConfig: loadPluginConfig(paths.config) };
+    // opencode.db lives in the XDG data dir, NOT the state dir that path.get() returns.
+    // The SDK Path type has no `data` field, so compute it the way opencode itself does.
+    const home = process.env.HOME ?? "";
+    const dataDir = `${process.env.XDG_DATA_HOME ?? `${home}/.local/share`}/opencode`;
+    cached = { dataDir, pluginConfig: loadPluginConfig(paths.config) };
     return cached;
   }
 
@@ -48,7 +52,7 @@ export const InsightsPlugin: Plugin = async (ctx) => {
           project: tool.schema.boolean().default(false).optional(),
         },
         async execute(args, toolCtx) {
-          const { stateDir, pluginConfig } = await resolveContext();
+          const { dataDir, pluginConfig } = await resolveContext();
 
           // model precedence: --model arg > insights.json config
           const model: InsightsModel = parseModel(args.model ?? pluginConfig.model);
@@ -60,7 +64,7 @@ export const InsightsPlugin: Plugin = async (ctx) => {
             concurrency: pluginConfig.concurrency,
             maxSessions: pluginConfig.maxSessions,
             projectOnly: args.project ?? false,
-            output: args.output ?? `${stateDir}/insights/report-${dateStamp()}.html`,
+            output: args.output ?? `${dataDir}/insights/report-${dateStamp()}.html`,
           };
 
           toolCtx.metadata({ title: `Generating insights (last ${config.days} days)...` });
@@ -68,7 +72,7 @@ export const InsightsPlugin: Plugin = async (ctx) => {
           const result = await runInsights(
             {
               client: ctx.client as unknown as LlmClient,
-              stateDir,
+              stateDir: dataDir,
               projectDir: toolCtx.directory,
             },
             config,
