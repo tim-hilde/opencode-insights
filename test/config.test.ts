@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_PLUGIN_CONFIG, dateStamp, loadPluginConfig, parseModel } from "../src/config.ts";
@@ -59,9 +59,7 @@ describe("loadPluginConfig", () => {
     const cfg = loadPluginConfig(dir);
     expect(cfg).toEqual(DEFAULT_PLUGIN_CONFIG);
     // File should have been written
-    const written = JSON.parse(
-      require("node:fs").readFileSync(join(dir, "insights.json"), "utf-8"),
-    );
+    const written = JSON.parse(readFileSync(join(dir, "insights.json"), "utf-8"));
     expect(written.days).toBe(30);
     rmSync(dir, { recursive: true });
   });
@@ -103,12 +101,10 @@ describe("loadPluginConfig", () => {
     rmSync(dir, { recursive: true });
   });
 
-  it('days: "30" (string) → falls back to default', () => {
+  it('days: "30" (numeric string) → coerced to 30', () => {
     const dir = tempDir();
     writeFileSync(join(dir, "insights.json"), JSON.stringify({ days: "30" }));
     const cfg = loadPluginConfig(dir);
-    // "30" is coercible via Number() → 30 which is valid, so it should work
-    // Actually Number("30") === 30, which is >= 1 → should be accepted
     expect(cfg.days).toBe(30);
     rmSync(dir, { recursive: true });
   });

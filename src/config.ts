@@ -46,12 +46,17 @@ export function loadPluginConfig(configDir: string): PluginConfig {
     return { ...DEFAULT_PLUGIN_CONFIG };
   }
 
-  let parsed: Record<string, unknown>;
+  let raw: unknown;
   try {
-    parsed = JSON.parse(readFileSync(path, "utf-8")) as Record<string, unknown>;
+    raw = JSON.parse(readFileSync(path, "utf-8"));
   } catch {
     return { ...DEFAULT_PLUGIN_CONFIG };
   }
+
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ...DEFAULT_PLUGIN_CONFIG };
+  }
+  const parsed = raw as Record<string, unknown>;
 
   return {
     model:
