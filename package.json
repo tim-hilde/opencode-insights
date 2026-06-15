@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "1.0.5",
+  "version": "1.1.0",
   "description": "OpenCode plugin that analyses your session history and generates an HTML insights report",
   "keywords": [
     "opencode",

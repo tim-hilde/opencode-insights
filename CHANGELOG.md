@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/tim-hilde/opencode-insights/compare/v1.0.4...v1.1.0) (2026-06-15)
+
+
+### Features
+
+* live progress toasts (start + facet milestones + per-aggregate + summary) ([ff136a7](https://github.com/tim-hilde/opencode-insights/commit/ff136a701ac8507b1cc4e8042172b98fffcc17a8))
+
 ## [1.0.4](https://github.com/tim-hilde/opencode-insights/compare/v1.0.3...v1.0.4) (2026-06-15)
 
 
