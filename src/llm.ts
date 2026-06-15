@@ -31,7 +31,6 @@ export async function runLlm(client: LlmClient, opts: LlmCallOptions): Promise<s
       path: { id: sessionId },
       body: {
         model: opts.model,
-        agent: "insights-analyzer",
         tools: {},
         system: opts.system,
         parts: [{ type: "text", text: opts.prompt }],

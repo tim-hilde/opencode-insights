@@ -68,7 +68,7 @@ Argument flags override config file values for a single run:
 2. **Facet extraction** — per-session LLM call extracting: goal, outcome, satisfaction, friction (cached to `~/.local/share/opencode/insights/facets/`)
 3. **Aggregate analysis** — 8 prompts: project areas, interaction style, agent performance, friction, suggestions, tool health, horizon
 4. **At-a-Glance synthesis** — final summary with split fault attribution (agent vs user-side)
-5. **Report generation** — self-contained HTML + `insights.json` (diffable across runs)
+5. **Report generation** — self-contained HTML + machine-readable `insights.json` for tracking over time
 
 ## Development
 

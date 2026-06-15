@@ -23,15 +23,6 @@ export const InsightsPlugin: Plugin = async (ctx) => {
 
   return {
     async config(cfg) {
-      cfg.agent ??= {};
-      cfg.agent["insights-analyzer"] = {
-        description:
-          "Low-temperature agent for structured JSON analysis. Used by the insights plugin.",
-        temperature: 0,
-        tools: {},
-        disable: false,
-      };
-
       cfg.command ??= {};
       cfg.command.insights = {
         description: "Generate a usage insights report for your OpenCode sessions.",
