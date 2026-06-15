@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/tim-hilde/opencode-insights/compare/v1.0.3...v1.0.4) (2026-06-15)
+
+
+### Bug Fixes
+
+* remove insights-analyzer agent registration; run analysis via default agent ([fe70c53](https://github.com/tim-hilde/opencode-insights/commit/fe70c530d2feccd5d242fcf9cfbd4c3a699fe70f))
+
 ## [1.0.3](https://github.com/tim-hilde/opencode-insights/compare/v1.0.2...v1.0.3) (2026-06-15)
 
 
