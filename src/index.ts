@@ -60,6 +60,16 @@ export const InsightsPlugin: Plugin = async (ctx) => {
 
           toolCtx.metadata({ title: `Generating insights (last ${config.days} days)...` });
 
+          // Toasts are the only progress channel opencode renders live during a tool
+          // run (metadata titles are not shown live in the TUI). Fire-and-forget so a
+          // slow/failed toast never blocks the pipeline.
+          const toast = (message: string) => {
+            ctx.client.tui.showToast({ body: { message, variant: "info" } }).catch(() => {});
+          };
+
+          let facetsStarted = false;
+          let facetMilestone = 0; // last 20% bucket already toasted
+
           const result = await runInsights(
             {
               client: ctx.client as unknown as LlmClient,
@@ -70,10 +80,24 @@ export const InsightsPlugin: Plugin = async (ctx) => {
             (phase, done, total) => {
               if (phase === "facets" && done !== undefined && total !== undefined) {
                 toolCtx.metadata({ title: `Extracting session facets (${done}/${total})...` });
-              } else if (phase === "aggregates") {
-                toolCtx.metadata({ title: "Running aggregate analysis..." });
+                if (!facetsStarted) {
+                  facetsStarted = true;
+                  toast(`Insights: extracting facets from ${total} session(s)…`);
+                }
+                // Milestone toasts every ~20% (avoids one toast per session).
+                if (total > 0) {
+                  const bucket = Math.floor((done / total) * 5); // 0..5
+                  if (bucket > facetMilestone && done < total) {
+                    facetMilestone = bucket;
+                    toast(`Insights: facets ${done}/${total} (${bucket * 20}%)…`);
+                  }
+                }
+              } else if (phase === "aggregates" && done !== undefined && total !== undefined) {
+                toolCtx.metadata({ title: `Running aggregate analysis (${done}/${total})...` });
+                toast(`Insights: aggregate analysis ${done}/${total}…`);
               } else if (phase === "at_a_glance") {
                 toolCtx.metadata({ title: "Generating at-a-glance summary..." });
+                toast("Insights: generating at-a-glance summary…");
               }
             },
           );

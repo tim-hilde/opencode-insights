@@ -48,8 +48,13 @@ export async function runInsights(
 
     stats.analyzedSessions = facets.size;
 
-    onProgress?.("aggregates");
-    const aggregates = await runAggregateAnalysis(facets, stats, config, deps.client);
+    const aggregates = await runAggregateAnalysis(
+      facets,
+      stats,
+      config,
+      deps.client,
+      (done, total) => onProgress?.("aggregates", done, total),
+    );
 
     onProgress?.("at_a_glance");
     const atAGlance = await generateAtAGlance(aggregates, stats, config, deps.client);

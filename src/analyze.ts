@@ -207,9 +207,12 @@ export async function runAggregateAnalysis(
   stats: AggregatedStats,
   config: InsightsConfig,
   client: LlmClient,
+  onProgress?: (done: number, total: number) => void,
 ): Promise<Record<string, unknown>> {
   const rollupData = buildRollupData(facets, stats);
   const results: Record<string, unknown> = {};
+  const total = AGGREGATE_PROMPTS.length;
+  let done = 0;
 
   await mapLimit(AGGREGATE_PROMPTS, config.concurrency, async ({ key, builder }) => {
     try {
@@ -218,6 +221,9 @@ export async function runAggregateAnalysis(
       results[key] = extractJson(raw);
     } catch {
       results[key] = {};
+    } finally {
+      done++;
+      onProgress?.(done, total);
     }
   });
 

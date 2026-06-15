@@ -304,4 +304,35 @@ describe("runAggregateAnalysis", () => {
 
     expect(results.project_areas).toEqual({});
   });
+
+  it("reports progress once per aggregate (7 total)", async () => {
+    const client = makeJsonClient({ result: "ok" });
+    const facets = new Map();
+    const stats = {
+      totalSessions: 0,
+      analyzedSessions: 0,
+      dateRange: { from: 0, to: 0 },
+      totalMessages: 0,
+      totalCost: 0,
+      totalTokens: 0,
+      topTools: [],
+      topAgents: [],
+      topModels: [],
+      byAgentModel: [],
+      toolErrorRates: [],
+      cacheEfficiency: [],
+      costPer1k: [],
+      agentDelegation: [],
+    };
+
+    const calls: Array<[number, number]> = [];
+    await runAggregateAnalysis(facets, stats, defaultConfig, client, (done, total) =>
+      calls.push([done, total]),
+    );
+
+    expect(calls.length).toBe(7);
+    // total is always 7; done increments to 7
+    expect(calls.every(([, total]) => total === 7)).toBe(true);
+    expect(Math.max(...calls.map(([done]) => done))).toBe(7);
+  });
 });
