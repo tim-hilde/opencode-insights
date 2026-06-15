@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/tim-hilde/opencode-insights/compare/v1.0.2...v1.0.3) (2026-06-15)
+
+
+### Bug Fixes
+
+* extract clean model name + variant from JSON model column in cost queries ([57534f4](https://github.com/tim-hilde/opencode-insights/commit/57534f4fbce70600cad44aff0e461f7b36ba1ff6))
+
 ## [1.0.2](https://github.com/tim-hilde/opencode-insights/compare/v1.0.1...v1.0.2) (2026-06-14)
 
 
