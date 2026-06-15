@@ -185,17 +185,18 @@ function renderAgentPerformance(agg: unknown, stats: AggregatedStats): string {
 }
 
 function renderCostIntelligence(stats: AggregatedStats): string {
-  const modelChart = stats.byAgentModel.length
+  // byAgentModel has one row per (agent, model); consolidate cost by model name.
+  const costByModel = new Map<string, number>();
+  for (const r of stats.byAgentModel) {
+    costByModel.set(r.model, (costByModel.get(r.model) ?? 0) + r.cost);
+  }
+  const modelChart = costByModel.size
     ? barChart(
         "Cost by model",
-        [...stats.byAgentModel]
-          .sort((a, b) => b.cost - a.cost)
+        Array.from(costByModel.entries())
+          .sort(([, a], [, b]) => b - a)
           .slice(0, 8)
-          .map((r) => ({
-            label: r.model.replace(/^.*\//, ""),
-            value: r.cost,
-            fmt: fmtCost(r.cost),
-          })),
+          .map(([model, cost]) => ({ label: model, value: cost, fmt: fmtCost(cost) })),
         "var(--olive)",
       )
     : "";
@@ -204,7 +205,7 @@ function renderCostIntelligence(stats: AggregatedStats): string {
     ? barChart(
         "Cache hit ratio by model",
         stats.cacheEfficiency.map((r) => ({
-          label: r.model.replace(/^.*\//, ""),
+          label: r.model,
           value: r.cacheRatio,
           fmt: fmtPct(r.cacheRatio),
         })),
@@ -217,7 +218,7 @@ function renderCostIntelligence(stats: AggregatedStats): string {
         .map(
           (r) => `
         <div class="stat">
-          <div class="stat-label">${esc(r.model.replace(/^.*\//, ""))}</div>
+          <div class="stat-label">${esc(r.model)}</div>
           <div class="stat-value" style="font-size:16px">${esc(fmtCost(r.costPer1kTokens))}</div>
         </div>`,
         )

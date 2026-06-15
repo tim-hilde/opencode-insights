@@ -69,6 +69,15 @@ export function createFixtureDb(): Database {
     `INSERT INTO session VALUES ('s5','proj1',NULL,'/home/user/proj','Old session','1.0','s5',${now - 40 * day},${now - 40 * day},'explore','anthropic/claude-haiku-4-5',0.01,100,50,0,0,0,NULL)`,
   );
 
+  // s6 + s7: production-shape JSON model column — same model, different variants.
+  // s6 uses the "xhigh" variant, s7 the "default" variant of the same model id.
+  db.run(
+    `INSERT INTO session VALUES ('s6','proj1',NULL,'/home/user/proj','Opus xhigh task','1.0','s6',${now - 1 * day},${now - 1 * day},'build','${JSON.stringify({ id: "claude-opus-4-8", providerID: "anthropic", variant: "xhigh" }).replace(/'/g, "''")}',0.50,2000,1000,0,500,200,NULL)`,
+  );
+  db.run(
+    `INSERT INTO session VALUES ('s7','proj1',NULL,'/home/user/proj','Opus default task','1.0','s7',${now - 1 * day},${now - 1 * day},'build','${JSON.stringify({ id: "claude-opus-4-8", providerID: "anthropic", variant: "default" }).replace(/'/g, "''")}',0.20,1000,500,0,100,50,NULL)`,
+  );
+
   // Messages for s1
   db.run(
     `INSERT INTO message VALUES ('m1','s1',${now - 5 * day},${now - 5 * day},'${JSON.stringify({ role: "user", time: { created: now - 5 * day } })}')`,

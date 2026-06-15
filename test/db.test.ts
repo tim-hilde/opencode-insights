@@ -139,6 +139,34 @@ describe("getByAgentModel", () => {
     expect(build).toBeDefined();
     expect(build?.sessions).toBe(1);
   });
+
+  it("extracts model id from JSON-shaped model column", () => {
+    const db = createFixtureDb();
+    // s6 has model {"id":"claude-opus-4-8",...,"variant":"xhigh"}
+    const rows = getByAgentModel(db, ["s6"]);
+    expect(rows[0]?.model).toBe("claude-opus-4-8 (xhigh)");
+  });
+
+  it("renders default variant as bare model id (no suffix)", () => {
+    const db = createFixtureDb();
+    // s7 has model {"id":"claude-opus-4-8",...,"variant":"default"}
+    const rows = getByAgentModel(db, ["s7"]);
+    expect(rows[0]?.model).toBe("claude-opus-4-8");
+  });
+
+  it("keeps plain-string model values intact", () => {
+    const db = createFixtureDb();
+    // s1 has model "anthropic/claude-sonnet-4-5" (plain string)
+    const rows = getByAgentModel(db, ["s1"]);
+    expect(rows[0]?.model).toBe("anthropic/claude-sonnet-4-5");
+  });
+
+  it("keeps different variants of the same model as separate rows", () => {
+    const db = createFixtureDb();
+    const rows = getByAgentModel(db, ["s6", "s7"]);
+    const models = rows.map((r) => r.model).sort();
+    expect(models).toEqual(["claude-opus-4-8", "claude-opus-4-8 (xhigh)"]);
+  });
 });
 
 describe("getToolErrorRates", () => {

@@ -15,6 +15,31 @@ function chunks<T>(arr: T[]): T[][] {
   return result;
 }
 
+/**
+ * SQL expression that yields a clean, groupable model name.
+ *
+ * The `session.model` column may hold either:
+ *   - a serialized JSON object, e.g. {"id":"claude-opus-4-8","providerID":"anthropic","variant":"xhigh"}
+ *   - a plain string, e.g. "anthropic/claude-sonnet-4-5"
+ *
+ * For the JSON shape, we use the `id` and append the `variant` in parentheses when it
+ * is present and not "default" — e.g. "claude-opus-4-8 (xhigh)". The "default" variant
+ * and missing variants render as the bare model id, so they collapse into one group.
+ * Plain-string models fall through to their raw value.
+ */
+const MODEL_NAME_SQL = `
+  CASE
+    WHEN model IS NOT NULL AND json_valid(model) AND json_extract(model, '$.id') IS NOT NULL THEN
+      json_extract(model, '$.id') ||
+      CASE
+        WHEN json_extract(model, '$.variant') IS NOT NULL
+         AND json_extract(model, '$.variant') != 'default'
+        THEN ' (' || json_extract(model, '$.variant') || ')'
+        ELSE ''
+      END
+    ELSE COALESCE(model, 'unknown')
+  END`;
+
 export function openDb(path: string): Database {
   return new Database(path, { readonly: true });
 }
@@ -153,13 +178,13 @@ export interface AgentModelRow {
 
 export function getByAgentModel(db: Database, sessionIds: string[]): AgentModelRow[] {
   if (sessionIds.length === 0) return [];
-  return chunks(sessionIds).flatMap((chunk) => {
+  const rawRows = chunks(sessionIds).flatMap((chunk) => {
     const placeholders = chunk.map(() => "?").join(",");
     return db
       .query<AgentModelRow, string[]>(`
       SELECT
         COALESCE(agent, 'unknown') as agent,
-        COALESCE(model, 'unknown') as model,
+        ${MODEL_NAME_SQL} as model,
         COUNT(*) as sessions,
         SUM(cost) as cost,
         -- cache_write intentionally excluded (see getTokenTotals)
@@ -167,10 +192,23 @@ export function getByAgentModel(db: Database, sessionIds: string[]): AgentModelR
       FROM session
       WHERE id IN (${placeholders})
       GROUP BY agent, model
-      ORDER BY cost DESC
     `)
       .all(...chunk);
   });
+  // Merge (agent, model) groups across chunks.
+  const map = new Map<string, AgentModelRow>();
+  for (const r of rawRows) {
+    const key = `${r.agent}::${r.model}`;
+    const existing = map.get(key);
+    if (existing) {
+      existing.sessions += r.sessions;
+      existing.cost += r.cost;
+      existing.tokens += r.tokens;
+    } else {
+      map.set(key, { ...r });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => b.cost - a.cost);
 }
 
 export interface ToolErrorRateRow {
@@ -227,7 +265,7 @@ export function getCacheEfficiency(db: Database, sessionIds: string[]): CacheEff
     return db
       .query<{ model: string; cache_read: number; input: number }, string[]>(`
       SELECT
-        COALESCE(model, 'unknown') as model,
+        ${MODEL_NAME_SQL} as model,
         SUM(tokens_cache_read) as cache_read,
         SUM(tokens_input) as input
       FROM session
@@ -263,7 +301,7 @@ export function getCostPer1k(db: Database, sessionIds: string[]): CostPer1kRow[]
     return db
       .query<{ model: string; cost: number; tokens: number }, string[]>(`
       SELECT
-        COALESCE(model, 'unknown') as model,
+        ${MODEL_NAME_SQL} as model,
         SUM(cost) as cost,
         -- cache_write intentionally excluded (see getTokenTotals)
         SUM(tokens_input + tokens_output + tokens_reasoning + tokens_cache_read) as tokens
