@@ -26,13 +26,15 @@ Add to `~/.config/opencode/opencode.json`:
 In the opencode TUI:
 
 ```
-/insights
+/insights                                       # current project only (default)
+/insights --all                                 # analyze every project
 /insights --days 7
 /insights --force
 /insights --model anthropic/claude-haiku-4-5
 /insights --output ~/Desktop/my-insights.html
-/insights --project
 ```
+
+> By default `/insights` analyzes **only the current project's** sessions. Pass `--all` to include every project in your opencode history. Scoping to the current project also limits how much unrelated session content is fed to the analysis model.
 
 ## Configuration
 
@@ -64,7 +66,7 @@ Argument flags override config file values for a single run:
 
 ## How it works
 
-1. **Extract** — reads sessions from `opencode.db` (last 30 days by default), filters out sub-agent sessions and `[insights]` sessions
+1. **Extract** — reads sessions from `opencode.db` (current project + last 30 days by default; use `--all` for every project), filters out sub-agent sessions and `[insights]` sessions
 2. **Facet extraction** — per-session LLM call extracting: goal, outcome, satisfaction, friction (cached to `~/.local/share/opencode/insights/facets/`)
 3. **Aggregate analysis** — 8 prompts: project areas, interaction style, agent performance, friction, suggestions, tool health, horizon
 4. **At-a-Glance synthesis** — final summary with split fault attribution (agent vs user-side)
