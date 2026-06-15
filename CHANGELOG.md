@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/tim-hilde/opencode-insights/compare/v1.1.0...v1.1.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* harden prompts against injection (nonce delimiters + guard), default to current project (--all for global) ([394960b](https://github.com/tim-hilde/opencode-insights/commit/394960bf71295a26a2140fa2c7a72bd984bc62c1))
+
 # [1.1.0](https://github.com/tim-hilde/opencode-insights/compare/v1.0.4...v1.1.0) (2026-06-15)
 
 
