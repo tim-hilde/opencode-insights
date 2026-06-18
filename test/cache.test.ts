@@ -72,7 +72,7 @@ describe("FacetCache.put", () => {
 
 describe("FACET_CACHE_VERSION", () => {
   it("is exported as 'v1'", () => {
-    expect(FACET_CACHE_VERSION).toBe("v1");
+    expect(FACET_CACHE_VERSION).toBe("v2");
   });
 });
 

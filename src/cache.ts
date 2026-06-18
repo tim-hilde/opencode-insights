@@ -10,8 +10,12 @@ import {
 import { join } from "node:path";
 import type { SessionFacet } from "./types.ts";
 
-/** Increment when SessionFacet schema changes to auto-invalidate old caches. */
-export const FACET_CACHE_VERSION = "v1";
+/**
+ * Increment when the SessionFacet schema OR the facet-extraction prompt changes in a
+ * way that should invalidate old cached facets.
+ * v2: actor-attribution rewrite of brief_summary / primary_success (agent vs user).
+ */
+export const FACET_CACHE_VERSION = "v2";
 
 export class FacetCache {
   readonly dir: string;

@@ -4,7 +4,13 @@ import { FRICTION_CATEGORIES, GOAL_CATEGORIES, SATISFACTION_LEVELS } from "./typ
 const JSON_SUFFIX =
   "RESPOND WITH ONLY A VALID JSON OBJECT. No markdown, no explanation, no code fences.";
 
-const TONE = `Use second person ("you"). Constructive coaching tone. Don't be fluffy or overly complimentary. Be honest but constructive.`;
+const TONE = `Address the user as "you", constructive coaching tone — don't be fluffy or overly complimentary, be honest but constructive.
+
+ACTOR ATTRIBUTION (critical): Attribute every action to the correct actor.
+- The AGENT performs tool calls, writes/edits code, runs commands, and debugs. Write "your agent" or "the agent" for these.
+- The USER (you) makes requests, provides context, invokes skills, approves/rejects actions, and verifies results. Write "you" only for these.
+- TOOLING/ENVIRONMENT problems (plugin bugs, timeouts, external API/CLI errors) belong to neither — never blame the agent or the user for them.
+Never credit agent-performed work (bug fixes, tool usage, error rates, command counts) to the user.`;
 
 /**
  * Prompt-injection guard. Prepended before any block of untrusted session data so
@@ -78,16 +84,18 @@ ${wrapUntrusted("session-metadata", metaSummary)}
 ## Session Transcript
 ${wrapUntrusted("session-transcript", transcript)}
 
+ACTOR ATTRIBUTION: In all free-text fields, attribute actions correctly — the AGENT runs tools, writes/edits code, and debugs ("the agent…"); YOU (the user) make requests, give context, and verify ("you…"). Tooling/environment failures (timeouts, plugin/CLI bugs) belong to neither.
+
 Return a JSON object with these fields:
 - "session_id": string
-- "underlying_goal": string — what the user was trying to accomplish
+- "underlying_goal": string — what the user asked for / was trying to accomplish
 - "goal_categories": object with keys [${categoriesStr}], each mapped to 0 or 1
 - "outcome": one of "fully_achieved", "mostly_achieved", "partially_achieved", "not_achieved", "unclear"
 - "satisfaction": object with keys [${satisfactionStr}], each mapped to 0 or 1 (exactly one should be 1)
 - "friction_counts": object with keys [${FRICTION_CATEGORIES.join(", ")}], each mapped to a count integer
-- "friction_detail": string — brief description of the main friction point if any, else empty string
-- "primary_success": string — the main thing that went well, or "none"
-- "brief_summary": string — 2-3 sentences max describing what happened
+- "friction_detail": string — brief description of the main friction point if any, else empty string; name the actor (agent / you / tooling)
+- "primary_success": string — the main thing that went well, naming who did it (e.g. "your agent fixed the auth bug after you flagged it"), or "none"
+- "brief_summary": string — 2-3 sentences max; attribute actions to agent vs you, never crediting agent work to the user
 
 ${JSON_SUFFIX}`;
 }
@@ -127,7 +135,7 @@ ${JSON_SUFFIX}`;
 
 export function buildInteractionStylePrompt(data: unknown): string {
   const dataStr = `${UNTRUSTED_GUARD}\n\n${wrapUntrusted("usage-data", JSON.stringify(data, null, 2))}`;
-  return `You are analyzing how a developer interacts with the OpenCode agent. Look at their patterns: how they phrase requests, how much context they provide, how they respond to agent actions, and how sessions typically unfold.
+  return `You are analyzing how the USER directs the OpenCode agent — NOT what the agent does on its own. Focus on the user's patterns: how they phrase requests, how much context they provide, how they respond to and steer agent actions, when they invoke skills, and how sessions typically unfold. Describe the user's direction style, not the agent's execution.
 
 ${TONE}
 
@@ -136,10 +144,10 @@ ${dataStr}
 
 Return a JSON object:
 {
-  "narrative": "string — 2-3 sentences describing their overall interaction style",
-  "key_patterns": ["string — specific observable pattern"],
-  "strengths": ["string — what they do well in their interactions"],
-  "growth_areas": ["string — where their interaction style could improve"]
+  "narrative": "string — 2-3 sentences describing YOUR direction/interaction style (how you steer the agent)",
+  "key_patterns": ["string — specific observable pattern in how you direct the agent"],
+  "strengths": ["string — what you do well when directing the agent"],
+  "growth_areas": ["string — where your direction style could improve"]
 }
 
 ${JSON_SUFFIX}`;
@@ -169,7 +177,7 @@ ${JSON_SUFFIX}`;
 
 export function buildFrictionPrompt(data: unknown): string {
   const dataStr = `${UNTRUSTED_GUARD}\n\n${wrapUntrusted("usage-data", JSON.stringify(data, null, 2))}`;
-  return `Analyze this OpenCode usage data and identify friction points for this user. Use second person ("you").
+  return `Analyze this OpenCode usage data and identify friction points. For each category, make clear WHO the friction comes from: the agent (misunderstandings, wrong approaches, bugs in agent-written code), you (too little context, rare skill use, skipping verification), or tooling/environment (timeouts, plugin/CLI bugs).
 
 ${TONE}
 
@@ -180,7 +188,7 @@ RESPOND WITH ONLY A VALID JSON OBJECT:
 {
   "intro": "1 sentence summarizing friction patterns",
   "categories": [
-    {"category": "Concrete category name", "description": "1-2 sentences explaining this category and what could be done differently. Use 'you' not 'the user'.", "examples": ["Specific example with consequence", "Another example"]}
+    {"category": "Concrete category name", "actor": "agent | you | tooling", "description": "1-2 sentences naming the actor and what could be done differently", "examples": ["Specific example with consequence", "Another example"]}
   ]
 }
 
@@ -291,15 +299,20 @@ ${TONE}
 
 Use this 4-part structure:
 
-1. **whats_working** — What is the user's unique style of interacting with the agent and what are some impactful things they've done? Don't be fluffy or overly complimentary. Don't focus on tool calls.
+1. **whats_working** — split into two clearly separate parts:
+   - "your_direction": what YOU do well when steering the agent (clear requests, good context, sensible delegation, verification habits).
+   - "agent_execution": what your AGENT executes well (e.g. tool precision, methodical debugging, recovering when blocked). Do NOT credit this to the user.
 
-2. **whats_hindering** — Split into (a) the agent's fault (misunderstandings, wrong approaches, bugs) and (b) user-side friction (not providing enough context, environment issues). Be honest but constructive.
+2. **whats_hindering** — split into three parts:
+   - "agent": agent-caused friction (misunderstandings, wrong approaches, bugs in agent-written code).
+   - "user_side": user-caused friction (too little context, rarely invoking skills, skipping verification before declaring work done).
+   - "tooling": tooling/environment problems (plugin bugs, timeouts, external CLI/API errors). Empty string if none.
 
-3. **quick_wins** — Specific opencode features they could try, or a compelling workflow technique.
+3. **quick_wins** — specific opencode features or a compelling workflow technique you could adopt.
 
-4. **ambitious_workflows** — As models improve over the next 3-6 months, what should they prepare for? What workflows that seem impossible now will become possible?
+4. **ambitious_workflows** — As models improve over the next 3-6 months, what should you prepare for? What workflows that seem impossible now will become possible?
 
-Keep each section to 2-3 not-too-long sentences. Don't overwhelm the user. Don't mention specific numerical stats. Use a coaching tone.
+Keep each sub-part to 1-2 not-too-long sentences. Don't overwhelm. Don't mention specific numerical stats. Coaching tone. Attribute actions to the correct actor (agent vs you vs tooling) throughout.
 
 ${UNTRUSTED_GUARD}
 
@@ -311,8 +324,8 @@ ${statsStr}
 
 RESPOND WITH ONLY A VALID JSON OBJECT:
 {
-  "whats_working": "string",
-  "whats_hindering": "string (split: (a) agent's fault ... (b) user-side ...)",
+  "whats_working": { "your_direction": "string", "agent_execution": "string" },
+  "whats_hindering": { "agent": "string", "user_side": "string", "tooling": "string (empty if none)" },
   "quick_wins": "string",
   "ambitious_workflows": "string"
 }

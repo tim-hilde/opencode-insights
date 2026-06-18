@@ -110,21 +110,23 @@ describe("prompt-injection hardening", () => {
 describe("aggregate prompt builders", () => {
   const sampleData = { sessions: 5, facets: [], stats: {} };
 
-  it("buildProjectAreasPrompt returns string with JSON_SUFFIX and TONE", () => {
+  it("buildProjectAreasPrompt returns string with JSON_SUFFIX and TONE attribution rule", () => {
     const p = buildProjectAreasPrompt(sampleData);
     expect(p).toContain("RESPOND WITH ONLY A VALID JSON OBJECT");
-    expect(p).toContain("second person");
+    expect(p).toContain("ACTOR ATTRIBUTION");
   });
 
-  it("buildInteractionStylePrompt returns string with TONE", () => {
+  it("buildInteractionStylePrompt carries the attribution rule and focuses on user direction", () => {
     const p = buildInteractionStylePrompt(sampleData);
-    expect(p).toContain("second person");
+    expect(p).toContain("ACTOR ATTRIBUTION");
+    expect(p).toContain("directs the OpenCode agent");
   });
 
-  it("buildFrictionPrompt uses second person (you)", () => {
+  it("buildFrictionPrompt distinguishes actor (agent/you/tooling)", () => {
     const p = buildFrictionPrompt(sampleData);
-    expect(p).toContain("you");
     expect(p).toContain("categories");
+    expect(p).toContain('"actor"');
+    expect(p).toContain("tooling");
   });
 
   it("buildSuggestionsPrompt contains AGENTS.md reference and CC IMPORTANT note", () => {
@@ -139,12 +141,14 @@ describe("aggregate prompt builders", () => {
     expect(p).toContain("opencode run");
   });
 
-  it("buildAtAGlancePrompt has 4-part structure with split fault", () => {
+  it("buildAtAGlancePrompt has actor-split structure (working: 2 parts, hindering: 3 parts)", () => {
     const p = buildAtAGlancePrompt({}, {});
     expect(p).toContain("whats_working");
+    expect(p).toContain("your_direction");
+    expect(p).toContain("agent_execution");
     expect(p).toContain("whats_hindering");
-    expect(p).toContain("agent's fault");
-    expect(p).toContain("user-side");
+    expect(p).toContain("user_side");
+    expect(p).toContain("tooling");
     expect(p).toContain("quick_wins");
     expect(p).toContain("ambitious_workflows");
   });
@@ -165,9 +169,10 @@ describe("aggregate prompt builders", () => {
     expect(p).toContain("No markdown");
   });
 
-  it("buildAtAGlancePrompt uses second person", () => {
+  it("buildAtAGlancePrompt carries the actor-attribution rule", () => {
     const p = buildAtAGlancePrompt({}, {});
-    expect(p).toContain("second person");
+    expect(p).toContain("ACTOR ATTRIBUTION");
+    expect(p).toContain("your agent");
   });
 
   it("buildHorizonPrompt returns string with JSON_SUFFIX", () => {

@@ -70,8 +70,15 @@ function makeReportData(partial: Partial<ReportData> = {}): ReportData {
       horizon: {},
     },
     atAGlance: {
-      whats_working: "You work efficiently with the build agent.",
-      whats_hindering: "(a) Agent sometimes misunderstands. (b) You rarely provide file context.",
+      whats_working: {
+        your_direction: "You delegate methodically and verify outcomes.",
+        agent_execution: "Your agent debugs precisely with a low tool error rate.",
+      },
+      whats_hindering: {
+        agent: "The agent sometimes picks the wrong approach.",
+        user_side: "You rarely provide file context up front.",
+        tooling: "The insights tool times out on large date ranges.",
+      },
       quick_wins: "Try using Skills for repeated workflows.",
       ambitious_workflows: "Headless mode for CI/CD automation.",
     },
@@ -140,6 +147,42 @@ describe("generateReport", () => {
     expect(html).toContain("What's Hindering");
     expect(html).toContain("Quick Wins");
     expect(html).toContain("Ambitious Workflows");
+  });
+
+  it("renders actor-split sub-labels for working (2) and hindering (3)", () => {
+    const html = generateReport(makeReportData(), "{}");
+    expect(html).toContain("Your Direction");
+    expect(html).toContain("Your Agent's Execution");
+    expect(html).toContain("Agent:");
+    expect(html).toContain("User-side:");
+    expect(html).toContain("Tooling");
+    // content from the sub-parts is present
+    expect(html).toContain("delegate methodically");
+    expect(html).toContain("debugs precisely");
+  });
+
+  it("skips empty tooling sub-part in hindering", () => {
+    const data = makeReportData();
+    (data.atAGlance.whats_hindering as Record<string, string>).tooling = "";
+    const html = generateReport(data, "{}");
+    expect(html).not.toContain("Tooling &amp; Environment:");
+    // other sub-parts still render
+    expect(html).toContain("User-side:");
+  });
+
+  it("backward-compat: renders legacy string-shaped at-a-glance", () => {
+    const data = makeReportData();
+    data.atAGlance = {
+      whats_working: "Legacy working string.",
+      whats_hindering: "Legacy hindering string.",
+      quick_wins: "Legacy wins.",
+      ambitious_workflows: "Legacy ambitious.",
+    };
+    const html = generateReport(data, "{}");
+    expect(html).toContain("Legacy working string.");
+    expect(html).toContain("Legacy hindering string.");
+    // no sub-labels for string shape
+    expect(html).not.toContain("Your Direction");
   });
 
   it("renders friction section with rust-border items", () => {

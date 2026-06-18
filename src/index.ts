@@ -115,7 +115,33 @@ export const InsightsPlugin: Plugin = async (ctx) => {
             body: { message: `Insights report ready: ${result.reportPath}`, variant: "success" },
           });
 
-          const glance = result.atAGlance as Record<string, string | undefined>;
+          const glance = result.atAGlance as Record<string, unknown>;
+          // Flatten a glance value (string for legacy, or labeled object for the
+          // actor-attributed split) into plain text for the TUI output.
+          const flatten = (val: unknown, subLabels: Array<[string, string]>): string => {
+            if (typeof val === "string") return val;
+            if (val && typeof val === "object") {
+              const obj = val as Record<string, unknown>;
+              return subLabels
+                .map(([k, label]) =>
+                  typeof obj[k] === "string" && obj[k] ? `${label}: ${obj[k] as string}` : "",
+                )
+                .filter(Boolean)
+                .join(" ");
+            }
+            return "";
+          };
+          const working = flatten(glance.whats_working, [
+            ["your_direction", "Your direction"],
+            ["agent_execution", "Your agent"],
+          ]);
+          const hindering = flatten(glance.whats_hindering, [
+            ["agent", "Agent"],
+            ["user_side", "User-side"],
+            ["tooling", "Tooling"],
+          ]);
+          const quickWins = flatten(glance.quick_wins, []);
+          const ambitious = flatten(glance.ambitious_workflows, []);
           return {
             title: "Insights Report Generated",
             output: [
@@ -128,12 +154,10 @@ export const InsightsPlugin: Plugin = async (ctx) => {
               "",
               "## At a Glance",
               "",
-              glance.whats_working ? `**What's Working:** ${glance.whats_working}` : "",
-              glance.whats_hindering ? `**What's Hindering:** ${glance.whats_hindering}` : "",
-              glance.quick_wins ? `**Quick Wins:** ${glance.quick_wins}` : "",
-              glance.ambitious_workflows
-                ? `**Ambitious Workflows:** ${glance.ambitious_workflows}`
-                : "",
+              working ? `**What's Working:** ${working}` : "",
+              hindering ? `**What's Hindering:** ${hindering}` : "",
+              quickWins ? `**Quick Wins:** ${quickWins}` : "",
+              ambitious ? `**Ambitious Workflows:** ${ambitious}` : "",
             ]
               .filter(Boolean)
               .join("\n"),

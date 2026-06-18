@@ -97,18 +97,43 @@ function keyInsight(text: unknown): string {
 
 // ── Section renderers ─────────────────────────────────────────────────────────
 
+// Render a glance value that may be a plain string (legacy reports) or an object
+// with labeled sub-parts (current: actor-attributed split). Empty sub-parts are skipped.
+function renderGlanceBody(val: unknown, subLabels: Array<[string, string]>): string {
+  if (val == null) return unavailable();
+  if (typeof val === "string") return val.trim() ? esc(val) : unavailable();
+  if (typeof val === "object") {
+    const obj = val as Record<string, unknown>;
+    const parts = subLabels
+      .map(([key, label]) => {
+        const sub = obj[key];
+        if (typeof sub !== "string" || !sub.trim()) return "";
+        return `<div class="glance-sub"><span class="glance-sub-label">${label}:</span> ${esc(sub)}</div>`;
+      })
+      .filter(Boolean);
+    return parts.length ? parts.join("") : unavailable();
+  }
+  return esc(val);
+}
+
 function renderAtAGlance(atAGlance: Record<string, unknown>): string {
-  const glanceItem = (key: string, label: string) => {
-    const val = atAGlance[key];
-    const content = val != null ? esc(val) : unavailable();
+  const glanceItem = (key: string, label: string, subLabels: Array<[string, string]> = []) => {
+    const content = renderGlanceBody(atAGlance[key], subLabels);
     return `<div class="glance-item">
       <div class="glance-label">${label}</div>
       <div>${content}</div>
     </div>`;
   };
   return `<div class="at-a-glance">
-    ${glanceItem("whats_working", "What's Working")}
-    ${glanceItem("whats_hindering", "What's Hindering")}
+    ${glanceItem("whats_working", "What's Working", [
+      ["your_direction", "Your Direction"],
+      ["agent_execution", "Your Agent's Execution"],
+    ])}
+    ${glanceItem("whats_hindering", "What's Hindering", [
+      ["agent", "Agent"],
+      ["user_side", "User-side"],
+      ["tooling", "Tooling &amp; Environment"],
+    ])}
     ${glanceItem("quick_wins", "Quick Wins")}
     ${glanceItem("ambitious_workflows", "Ambitious Workflows")}
   </div>`;
@@ -497,6 +522,8 @@ section[id]{scroll-margin-top:52px}
 @media(max-width:600px){.at-a-glance{grid-template-columns:1fr}}
 .glance-item{background:var(--paper);border:var(--border);border-radius:var(--radius-panel);padding:16px}
 .glance-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--clay);margin-bottom:8px}
+.glance-sub{margin:6px 0}
+.glance-sub-label{font-weight:600;color:var(--g700)}
 
 /* Bar chart */
 .bar-chart{margin:16px 0}
