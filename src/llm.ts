@@ -63,8 +63,11 @@ export class JsonParseError extends Error {
 export function extractJson(text: string): unknown {
   let cleaned = text.trim();
 
-  const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
-  if (fenceMatch) cleaned = fenceMatch[1];
+  // Strip a wrapping markdown fence WITHOUT using it to bound the content: a greedy/
+  // non-greedy fence regex mis-fires when a string value contains its own code fence
+  // (e.g. a `copyable_prompt` with a ```md``` block), truncating valid JSON. Instead we
+  // drop only a leading opener and trailing closer, then rely on brace matching below.
+  cleaned = cleaned.replace(/^```(?:json)?[ \t]*\r?\n?/i, "").replace(/\r?\n?```\s*$/i, "");
 
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");

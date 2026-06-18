@@ -126,6 +126,26 @@ describe("extractJson", () => {
     expect(result).toEqual({ bar: 4 });
   });
 
+  it("parses fenced JSON whose string values contain inner code fences", () => {
+    const raw = [
+      "```json",
+      "{",
+      '  "items": [',
+      '    {"example": "Create `.opencode/commands/x.md`:\\n```md\\nhello\\n```"}',
+      "  ]",
+      "}",
+      "```",
+    ].join("\n");
+    const result = extractJson(raw) as { items: Array<{ example: string }> };
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].example).toContain("hello");
+  });
+
+  it("parses JSON with backticks in values when not fenced", () => {
+    const result = extractJson('{"cmd": "run `npm test` now"}');
+    expect(result).toEqual({ cmd: "run `npm test` now" });
+  });
+
   it("throws JsonParseError on invalid JSON inside braces", () => {
     expect(() => extractJson("{bad json}")).toThrow(JsonParseError);
   });
