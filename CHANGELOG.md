@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/tim-hilde/opencode-insights/compare/v1.1.1...v1.1.2) (2026-06-18)
+
+
+### Bug Fixes
+
+* attribute report actions to agent vs user vs tooling (split at-a-glance, facet-level attribution, v2 cache) ([783daec](https://github.com/tim-hilde/opencode-insights/commit/783daec8606b6c20d2c6b91a7a3dfcbd4b570f8e))
+
 ## [1.1.1](https://github.com/tim-hilde/opencode-insights/compare/v1.1.0...v1.1.1) (2026-06-15)
 
 
