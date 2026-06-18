@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/tim-hilde/opencode-insights/compare/v1.1.2...v1.1.3) (2026-06-18)
+
+
+### Bug Fixes
+
+* extractJson truncated JSON when string values contained code fences ([afd7a5d](https://github.com/tim-hilde/opencode-insights/commit/afd7a5d5d49f56c25221dce6df4e6db2282ba41b))
+
 ## [1.1.2](https://github.com/tim-hilde/opencode-insights/compare/v1.1.1...v1.1.2) (2026-06-18)
 
 
