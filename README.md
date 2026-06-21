@@ -13,7 +13,7 @@ Registers a `/insights` slash command that:
 
 `/insights` produces a single self-contained HTML file — no server, no build step, just open it in a browser. It loads light by default with an **opt-in dark mode**, every section is **collapsible** for quick skimming, and **Export insights.json** downloads the underlying data so you can diff reports over time.
 
-[![OpenCode Insights example report](docs/sample-report.png)](docs/sample-report.html)
+![OpenCode Insights example report](https://htmlpreview.github.io/?https://github.com/tim-hilde/opencode-insights/blob/main/docs/sample-report.html)
 
 > The image above is a static preview. For the interactive version — collapsible sections, dark-mode toggle, and JSON export — open [`docs/sample-report.html`](docs/sample-report.html) in a browser, or [preview it online](https://htmlpreview.github.io/?https://github.com/tim-hilde/opencode-insights/blob/main/docs/sample-report.html). The data shown is an illustrative example.
 
