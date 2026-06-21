@@ -595,6 +595,27 @@ section[id]{scroll-margin-top:52px}
 .list-simple li{padding:5px 0;border-bottom:1px solid var(--g100);font-size:14px;color:var(--g700)}
 .list-simple li:last-child{border-bottom:none}
 .list-simple li::before{content:"→\\00a0";color:var(--clay)}
+
+/* Collapsible sections (native <details>) */
+.section{margin:0}
+summary.section-header{cursor:pointer;align-items:center;list-style:none}
+summary.section-header::-webkit-details-marker{display:none}
+summary.section-header::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--g500);border-bottom:2px solid var(--g500);transform:rotate(-45deg);transition:transform .2s;flex:none}
+details[open] > summary.section-header::after{transform:rotate(45deg)}
+summary.section-header:hover{color:var(--clay-text)}
+summary.section-header:hover::after{border-color:var(--clay)}
+summary.section-header:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+
+/* Action bar */
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
+.nav-toggle{margin-left:auto;font-size:12px;padding:3px 12px;border-radius:6px}
+
+/* Opt-in dark mode — warm token overrides, accents kept */
+:root[data-theme="dark"]{
+  --ivory:#1A1917; --paper:#211F1C; --g100:#272521; --g200:#302D28; --g300:#3C3833;
+  --g500:#9A968C; --g700:#CFCABD; --slate:#F2EFE8; --oat:#3A332A;
+  --clay-text:#E0916F; --olive-text:#9DB47E;
+}
 `;
 
 // ── Main export ───────────────────────────────────────────────────────────────
@@ -623,8 +644,10 @@ export function generateReport(data: ReportData, insightsJson: string): string {
 
   const section = (id: string, title: string, content: string) => `
   <section id="${id}">
-    <div class="section-header"><h2>${title}</h2></div>
-    <div class="panel">${content}</div>
+    <details class="section" open>
+      <summary class="section-header"><h2>${title}</h2></summary>
+      <div class="panel">${content}</div>
+    </details>
   </section>`;
 
   return `<!DOCTYPE html>
@@ -633,6 +656,7 @@ export function generateReport(data: ReportData, insightsJson: string): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>OpenCode Insights</title>
+<script>try{if((localStorage.getItem('theme')||'light')==='dark')document.documentElement.dataset.theme='dark';}catch(e){}</script>
 <style>${CSS}</style>
 </head>
 <body>
@@ -640,7 +664,7 @@ export function generateReport(data: ReportData, insightsJson: string): string {
 <a class="skip-link" href="#main-content">Skip to content</a>
 
 <nav class="section-nav" aria-label="Report sections">
-  <div class="inner">${navLinks}</div>
+  <div class="inner">${navLinks}<button id="theme-toggle" class="nav-toggle" type="button" aria-label="Toggle dark mode">Dark</button></div>
 </nav>
 
 <main class="wrap" id="main-content">
@@ -671,11 +695,17 @@ export function generateReport(data: ReportData, insightsJson: string): string {
     </div>
   </div>
 
-  <button class="primary" onclick="exportJson()" style="margin:8px 0 0">Export insights.json</button>
+  <div class="actions">
+    <button class="primary" type="button" onclick="exportJson()">Export insights.json</button>
+    <button type="button" onclick="toggleAll(true)">Expand all</button>
+    <button type="button" onclick="toggleAll(false)">Collapse all</button>
+  </div>
 
   <section id="at-a-glance">
-    <div class="section-header"><h2>At a Glance</h2></div>
-    ${renderAtAGlance(atAGlance)}
+    <details class="section" open>
+      <summary class="section-header"><h2>At a Glance</h2></summary>
+      ${renderAtAGlance(atAGlance)}
+    </details>
   </section>
 
   ${section("project-areas", "Project Areas", renderProjectAreas(aggregates.project_areas))}
@@ -704,6 +734,22 @@ function exportJson() {
   a.download = 'insights.json';
   a.click();
 }
+function toggleAll(open) {
+  document.querySelectorAll('details.section').forEach((d) => { d.open = open; });
+}
+(function () {
+  const root = document.documentElement;
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  const sync = () => { btn.textContent = root.dataset.theme === 'dark' ? 'Light' : 'Dark'; };
+  btn.addEventListener('click', () => {
+    const dark = root.dataset.theme === 'dark';
+    root.dataset.theme = dark ? '' : 'dark';
+    try { localStorage.setItem('theme', dark ? 'light' : 'dark'); } catch (e) {}
+    sync();
+  });
+  sync();
+})();
 </script>
 </body>
 </html>`;
