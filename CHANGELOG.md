@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/tim-hilde/opencode-insights/compare/v1.3.0...v1.3.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* use correct link ([6c0017e](https://github.com/tim-hilde/opencode-insights/commit/6c0017e40fa3914927991954c0d1028e29ca3484))
+
 # [1.3.0](https://github.com/tim-hilde/opencode-insights/compare/v1.2.0...v1.3.0) (2026-06-21)
 
 
