@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/tim-hilde/opencode-insights/compare/v1.2.0...v1.3.0) (2026-06-21)
+
+
+### Features
+
+* collapsible report sections and opt-in dark mode ([cb568f8](https://github.com/tim-hilde/opencode-insights/commit/cb568f860dbf609a1fe83e1be7968c112a955a74))
+
 # [1.2.0](https://github.com/tim-hilde/opencode-insights/compare/v1.1.3...v1.2.0) (2026-06-21)
 
 
