@@ -8,6 +8,7 @@ import {
   buildHorizonPrompt,
   buildInteractionStylePrompt,
   buildProjectAreasPrompt,
+  buildRoomToLearnPrompt,
   buildSuggestionsPrompt,
   buildToolHealthPrompt,
 } from "../src/prompts.ts";
@@ -81,6 +82,7 @@ describe("prompt-injection hardening", () => {
       buildInteractionStylePrompt,
       buildFrictionPrompt,
       buildSuggestionsPrompt,
+      buildRoomToLearnPrompt,
     ]) {
       const p = build({ x: 1 });
       expect(p).toContain(GUARD);
@@ -120,6 +122,14 @@ describe("aggregate prompt builders", () => {
     const p = buildInteractionStylePrompt(sampleData);
     expect(p).toContain("ACTOR ATTRIBUTION");
     expect(p).toContain("directs the OpenCode agent");
+  });
+
+  it("buildInteractionStylePrompt schema drops narrative + strengths (actionable fields only)", () => {
+    const p = buildInteractionStylePrompt(sampleData);
+    expect(p).not.toContain('"narrative"');
+    expect(p).not.toContain('"strengths"');
+    expect(p).toContain('"key_patterns"');
+    expect(p).toContain('"growth_areas"');
   });
 
   it("buildFrictionPrompt distinguishes actor (agent/you/tooling)", () => {
@@ -179,5 +189,15 @@ describe("aggregate prompt builders", () => {
     const p = buildHorizonPrompt(sampleData);
     expect(p).toContain("RESPOND WITH ONLY A VALID JSON OBJECT");
     expect(p).toContain("automation_opportunities");
+  });
+
+  it("buildRoomToLearnPrompt targets personal upskilling, not custom skills", () => {
+    const p = buildRoomToLearnPrompt(sampleData);
+    expect(p).toContain("RESPOND WITH ONLY A VALID JSON OBJECT");
+    expect(p).toContain("ACTOR ATTRIBUTION");
+    expect(p).toContain('"areas"');
+    expect(p).toContain("first_step");
+    // explicitly scoped away from the horizon section's "skill gaps"
+    expect(p).toContain("NOT custom agent skills");
   });
 });

@@ -211,6 +211,60 @@ describe("generateReport", () => {
     expect(html).toContain("insights.json");
   });
 
+  it("marks bar charts as role=img and drops zero-value rows", () => {
+    const data = makeReportData();
+    data.stats.topAgents = [
+      { agent: "build", count: 3 },
+      { agent: "ghostagent", count: 0 },
+    ];
+    const html = generateReport(data, "{}");
+    expect(html).toContain('role="img"');
+    expect(html).toContain("build");
+    // zero-value row is omitted entirely (label never appears)
+    expect(html).not.toContain("ghostagent");
+  });
+
+  it("includes accessibility landmarks (skip link, nav label, main)", () => {
+    const html = generateReport(makeReportData(), "{}");
+    expect(html).toContain('class="skip-link"');
+    expect(html).toContain('aria-label="Report sections"');
+    expect(html).toContain('<main class="wrap" id="main-content">');
+  });
+
+  it("renders Room to Learn cards with a start-here step", () => {
+    const data = makeReportData();
+    data.aggregates.room_to_learn = {
+      intro: "Topics drawn from your work.",
+      areas: [
+        {
+          topic: "Caching strategies",
+          type: "concept",
+          rationale: "You lean on cache hit ratios across sessions.",
+          first_step: "Read about cache invalidation trade-offs.",
+        },
+      ],
+    };
+    const html = generateReport(data, "{}");
+    expect(html).toContain("Room to Learn");
+    expect(html).toContain("Caching strategies");
+    expect(html).toContain("Start here:");
+  });
+
+  it("interaction section omits prose narrative and strengths", () => {
+    const data = makeReportData();
+    data.aggregates.interaction_style = {
+      narrative: "You are a decisive person.",
+      key_patterns: ["You batch related requests together."],
+      strengths: ["You delegate cleanly to subagents."],
+      growth_areas: ["Provide file context up front."],
+    };
+    const html = generateReport(data, "{}");
+    expect(html).not.toContain("You are a decisive person.");
+    expect(html).not.toContain("You delegate cleanly to subagents.");
+    expect(html).toContain("You batch related requests together.");
+    expect(html).toContain("Provide file context up front.");
+  });
+
   it("JSON island has no raw < character (prevents </script breakout)", () => {
     const html = generateReport(makeReportData(), '{"x":"</script>"}');
     // Extract just the JSON content between the opening tag's > and the closing </script>

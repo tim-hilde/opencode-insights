@@ -139,14 +139,14 @@ export function buildInteractionStylePrompt(data: unknown): string {
 
 ${TONE}
 
+Keep it concrete and observable — no prose personality profile and no flattering list of what the user does well. Only surface patterns that are actionable.
+
 SESSION DATA:
 ${dataStr}
 
 Return a JSON object:
 {
-  "narrative": "string — 2-3 sentences describing YOUR direction/interaction style (how you steer the agent)",
   "key_patterns": ["string — specific observable pattern in how you direct the agent"],
-  "strengths": ["string — what you do well when directing the agent"],
   "growth_areas": ["string — where your direction style could improve"]
 }
 
@@ -286,6 +286,36 @@ Return a JSON object:
   "skill_gaps": ["string — capability gap that a custom skill could fill"],
   "workflow_evolutions": ["string — how their workflow could improve with better tooling or habits"]
 }
+
+${JSON_SUFFIX}`;
+}
+
+export function buildRoomToLearnPrompt(data: unknown): string {
+  const dataStr = `${UNTRUSTED_GUARD}\n\n${wrapUntrusted("usage-data", JSON.stringify(data, null, 2))}`;
+  return `You are identifying where the USER could grow their OWN knowledge and skills — personal upskilling for the human, NOT custom agent skills or OpenCode features (those belong to other sections). Based on the project areas they work in, the tools, languages, and models they use, and the friction patterns observed, suggest concrete topics they could study to close conceptual, thematic, or domain (subject-matter) gaps and to reach their growth potential.
+
+${TONE}
+
+Cover a mix of these types:
+- "concept": a foundational idea or mental model worth deepening (e.g. caching strategies, type systems, concurrency, evaluation/metrics).
+- "domain": subject-matter / thematic knowledge tied to what they build (e.g. auth & security, data modeling, the specific framework or platform in their sessions).
+- "tooling": getting more leverage from a tool, language, or platform they already touch.
+- "workflow": a working practice or methodology that would raise their ceiling (e.g. TDD, systematic debugging, writing specs first).
+
+Ground every suggestion in something visible in their data — a gap to close or a strength to extend further. Be honest and specific; do NOT invent topics unrelated to their actual work, and do NOT recommend building OpenCode skills/plugins here.
+
+USAGE DATA:
+${dataStr}
+
+Return a JSON object:
+{
+  "intro": "string — 1 sentence framing these as personal learning areas drawn from your work",
+  "areas": [
+    {"topic": "string — the concept, domain, tool, or practice to learn", "type": "concept | domain | tooling | workflow", "rationale": "string — why this matters for you, citing the gap or growth opportunity (attribute actors correctly)", "first_step": "string — one concrete, low-friction way to start learning it"}
+  ]
+}
+
+Include 4-5 areas spanning at least two different types.
 
 ${JSON_SUFFIX}`;
 }

@@ -60,21 +60,27 @@ function barChart(
   items: Array<{ label: string; value: number; fmt?: string }>,
   color = "var(--clay)",
 ): string {
-  if (!items.length) return "";
-  const max = Math.max(...items.map((i) => i.value), 1);
-  const rows = items
+  // Drop zero-value rows: an empty bar + "0"/"$0.0000" + a (often truncated) label
+  // is three redundant "this did nothing" signals that just add noise.
+  const visible = items.filter((i) => i.value > 0);
+  if (!visible.length) return "";
+  const max = Math.max(...visible.map((i) => i.value), 1);
+  const rows = visible
     .map((i) => {
       const pct = Math.round((i.value / max) * 100);
       const display = esc(i.fmt ?? String(i.value));
       return `<div class="bar-row">
       <span class="bar-label">${esc(i.label)}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>
       <span class="bar-value">${display}</span>
     </div>`;
     })
     .join("");
-  return `<div class="bar-chart">
-    <div class="bar-chart-title">${esc(title)}</div>
+  // role="img" + aria-label gives assistive tech the full data in one readable
+  // string; the decorative track divs are hidden so they aren't announced.
+  const summary = visible.map((i) => `${i.label}: ${i.fmt ?? i.value}`).join(", ");
+  return `<div class="bar-chart" role="img" aria-label="${esc(`${title} — ${summary}`)}">
+    <div class="bar-chart-title" aria-hidden="true">${esc(title)}</div>
     ${rows}
   </div>`;
 }
@@ -256,17 +262,16 @@ function renderCostIntelligence(stats: AggregatedStats): string {
 function renderInteractionAndFriction(interaction: unknown, friction: unknown): string {
   let out = "";
 
-  // Interaction style: narrative + key insight
+  // Interaction style: one observable pattern + actionable growth areas.
+  // The prose "narrative" and "strengths" fields were removed from the schema
+  // entirely (buildInteractionStylePrompt) — they psychoanalysed the user without
+  // adding actionable signal. Only key_patterns + growth_areas are produced now.
   if (!isEmptyObject(interaction)) {
     const d = interaction as {
-      narrative?: string;
       key_patterns?: string[];
-      strengths?: string[];
       growth_areas?: string[];
     };
-    if (d.narrative) out += `<div class="narrative"><p>${esc(d.narrative)}</p></div>`;
     if (d.key_patterns?.length) out += keyInsight(d.key_patterns[0]);
-    if (d.strengths?.length) out += `<h3>Strengths</h3>${simpleList(d.strengths)}`;
     if (d.growth_areas?.length) out += `<h3>Growth Areas</h3>${simpleList(d.growth_areas)}`;
   }
 
@@ -470,13 +475,39 @@ function renderHorizon(agg: unknown): string {
   return out || unavailable();
 }
 
+function renderRoomToLearn(agg: unknown): string {
+  if (isEmptyObject(agg)) return unavailable();
+  const data = agg as {
+    intro?: string;
+    areas?: Array<{ topic: string; type?: string; rationale: string; first_step?: string }>;
+  };
+  if (!data.areas?.length) return unavailable();
+
+  let out = data.intro ? `<p>${esc(data.intro)}</p>` : "";
+  out += data.areas
+    .map(
+      (a) => `
+    <div class="card" style="margin:8px 0">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+        <strong>${esc(a.topic)}</strong>
+        ${a.type ? `<span class="tag">${esc(a.type)}</span>` : ""}
+      </div>
+      <p style="margin:0 0 6px">${esc(a.rationale)}</p>
+      ${a.first_step ? `<div class="learn-step"><span class="learn-step-label">Start here:</span> ${esc(a.first_step)}</div>` : ""}
+    </div>`,
+    )
+    .join("");
+
+  return out || unavailable();
+}
+
 // ── CSS ───────────────────────────────────────────────────────────────────────
 
 const CSS = `
 :root{
   --ivory:#FAF9F5; --paper:#FFFFFF;
-  --g100:#F0EEE6; --g200:#E6E3DA; --g300:#D1CFC5; --g500:#87867F; --g700:#3D3D3A;
-  --slate:#141413; --clay:#D97757; --clay-d:#B85C3E; --rust:#B04A3F; --olive:#788C5D; --oat:#E3DACC;
+  --g100:#F0EEE6; --g200:#E6E3DA; --g300:#D1CFC5; --g500:#6A6960; --g700:#3D3D3A;
+  --slate:#141413; --clay:#D97757; --clay-d:#B85C3E; --clay-text:#9C4A2E; --rust:#B04A3F; --olive:#788C5D; --olive-text:#5F7048; --oat:#E3DACC;
   --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
@@ -503,7 +534,11 @@ button:hover{filter:brightness(.97)}
 .section-nav{position:sticky;top:0;background:var(--paper);border-bottom:var(--border);padding:10px 0;z-index:100}
 .section-nav .inner{max-width:920px;margin:0 auto;padding:0 24px;display:flex;gap:4px;flex-wrap:wrap;align-items:center}
 .section-nav a{font-size:12px;color:var(--g500);text-decoration:none;padding:4px 10px;border-radius:6px;white-space:nowrap;transition:color .15s}
-.section-nav a:hover{color:var(--clay)}
+.section-nav a:hover{color:var(--clay-text)}
+
+/* Skip link (visible on keyboard focus) */
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--clay);color:var(--paper);padding:8px 14px;border-radius:0 0 8px 0;z-index:200;font-weight:600}
+.skip-link:focus{left:0}
 
 /* Page sections */
 section{margin:40px 0}
@@ -521,31 +556,38 @@ section[id]{scroll-margin-top:52px}
 .at-a-glance{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:8px 0}
 @media(max-width:600px){.at-a-glance{grid-template-columns:1fr}}
 .glance-item{background:var(--paper);border:var(--border);border-radius:var(--radius-panel);padding:16px}
-.glance-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--clay);margin-bottom:8px}
+.glance-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--clay-text);margin-bottom:8px}
 .glance-sub{margin:6px 0}
 .glance-sub-label{font-weight:600;color:var(--g700)}
 
 /* Bar chart */
 .bar-chart{margin:16px 0}
 .bar-chart-title{font-size:11px;color:var(--g500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.bar-label{width:140px;font-size:12px;color:var(--g700);text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bar-track{flex:1;height:7px;background:var(--g100);border-radius:4px;overflow:hidden}
-.bar-fill{height:100%;border-radius:4px}
-.bar-value{width:70px;font-size:11px;color:var(--g500);flex-shrink:0}
+.bar-row{display:grid;grid-template-columns:150px 1fr auto;align-items:center;gap:12px;margin-bottom:9px}
+.bar-label{font-size:12px;color:var(--g700);text-align:right;line-height:1.3;overflow-wrap:anywhere}
+.bar-track{height:10px;background:var(--g100);border-radius:5px;overflow:hidden;min-width:36px}
+.bar-fill{height:100%;border-radius:5px}
+.bar-value{font-size:12px;color:var(--g700);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:768px){
+  .bar-row{grid-template-columns:1fr auto;column-gap:12px;row-gap:4px}
+  .bar-label{grid-column:1 / -1;text-align:left}
+}
 
-/* Narrative & key insight */
-.narrative p{margin-bottom:8px;line-height:1.7;color:var(--g700)}
+/* Key insight */
 .key-insight{background:var(--oat);border-left:3px solid var(--clay);padding:12px 16px;margin:12px 0;border-radius:0 6px 6px 0;font-size:14px;color:var(--g700)}
 
 /* Friction */
 .friction-item{border-left:3px solid var(--rust);padding:6px 0 6px 14px;margin:10px 0}
 
+/* Room to Learn */
+.learn-step{font-size:14px;color:var(--g700)}
+.learn-step-label{font-weight:600;color:var(--clay-text)}
+
 /* Tag & badge */
 .tag{display:inline-block;background:var(--g100);border:var(--border);border-radius:4px;padding:2px 8px;font-size:12px;margin:2px}
 .badge{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:4px;border:1.5px solid currentColor}
-.badge-low{color:var(--olive)}
-.badge-medium{color:var(--clay)}
+.badge-low{color:var(--olive-text)}
+.badge-medium{color:var(--clay-text)}
 .badge-high{color:var(--rust)}
 
 /* Simple list */
@@ -566,14 +608,15 @@ export function generateReport(data: ReportData, insightsJson: string): string {
 
   const navLinks = [
     ["#at-a-glance", "At a Glance"],
-    ["#project-areas", "Projects"],
-    ["#agent-performance", "Agents"],
-    ["#cost", "Cost"],
-    ["#interaction-friction", "Interaction"],
+    ["#project-areas", "Project Areas"],
+    ["#agent-performance", "Agent Performance"],
+    ["#cost", "Cost Intelligence"],
+    ["#interaction-friction", "Interaction &amp; Friction"],
     ["#suggestions", "Suggestions"],
     ["#delegation", "Delegation"],
-    ["#tool-health", "Tools"],
-    ["#horizon", "Horizon"],
+    ["#tool-health", "Tool Health"],
+    ["#room-to-learn", "Room to Learn"],
+    ["#horizon", "On the Horizon"],
   ]
     .map(([href, label]) => `<a href="${href}">${label}</a>`)
     .join("");
@@ -594,11 +637,13 @@ export function generateReport(data: ReportData, insightsJson: string): string {
 </head>
 <body>
 
-<nav class="section-nav">
+<a class="skip-link" href="#main-content">Skip to content</a>
+
+<nav class="section-nav" aria-label="Report sections">
   <div class="inner">${navLinks}</div>
 </nav>
 
-<div class="wrap">
+<main class="wrap" id="main-content">
 
   <h1>OpenCode Insights</h1>
   <p class="muted">${esc(dateFrom)} – ${esc(dateTo)}</p>
@@ -640,13 +685,14 @@ export function generateReport(data: ReportData, insightsJson: string): string {
   ${section("suggestions", "Suggestions", renderSuggestions(aggregates.suggestions))}
   ${section("delegation", "Delegation Topology", renderDelegationTopology(stats))}
   ${section("tool-health", "Tool Health", renderToolHealth(aggregates.tool_health, stats))}
+  ${section("room-to-learn", "Room to Learn", renderRoomToLearn(aggregates.room_to_learn))}
   ${section("horizon", "On the Horizon", renderHorizon(aggregates.horizon))}
 
   <footer style="border-top:var(--border);padding:24px 0;margin-top:48px;color:var(--g500);font-size:12px">
     Generated by opencode-insights · ${esc(new Date(data.generatedAt).toLocaleString())}
   </footer>
 
-</div>
+</main>
 
 <script type="application/json" id="insights-data">${safeJson}</script>
 <script>

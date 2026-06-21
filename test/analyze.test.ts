@@ -232,7 +232,7 @@ describe("extractFacets", () => {
 });
 
 describe("runAggregateAnalysis", () => {
-  it("returns an object with all 7 analysis keys", async () => {
+  it("returns an object with all 8 analysis keys", async () => {
     const client = makeJsonClient({ result: "ok" });
     const facets = new Map();
     const stats = {
@@ -261,6 +261,7 @@ describe("runAggregateAnalysis", () => {
       "friction",
       "suggestions",
       "tool_health",
+      "room_to_learn",
       "horizon",
     ];
     for (const key of expectedKeys) {
@@ -305,7 +306,7 @@ describe("runAggregateAnalysis", () => {
     expect(results.project_areas).toEqual({});
   });
 
-  it("reports progress once per aggregate (7 total)", async () => {
+  it("reports progress once per aggregate (8 total)", async () => {
     const client = makeJsonClient({ result: "ok" });
     const facets = new Map();
     const stats = {
@@ -330,9 +331,9 @@ describe("runAggregateAnalysis", () => {
       calls.push([done, total]),
     );
 
-    expect(calls.length).toBe(7);
-    // total is always 7; done increments to 7
-    expect(calls.every(([, total]) => total === 7)).toBe(true);
-    expect(Math.max(...calls.map(([done]) => done))).toBe(7);
+    expect(calls.length).toBe(8);
+    // total is always 8; done increments to 8
+    expect(calls.every(([, total]) => total === 8)).toBe(true);
+    expect(Math.max(...calls.map(([done]) => done))).toBe(8);
   });
 });

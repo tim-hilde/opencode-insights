@@ -13,6 +13,7 @@ import {
   buildHorizonPrompt,
   buildInteractionStylePrompt,
   buildProjectAreasPrompt,
+  buildRoomToLearnPrompt,
   buildSuggestionsPrompt,
   buildToolHealthPrompt,
 } from "./prompts.ts";
@@ -199,6 +200,7 @@ const AGGREGATE_PROMPTS: Array<{ key: string; builder: (data: unknown) => string
   { key: "friction", builder: buildFrictionPrompt },
   { key: "suggestions", builder: buildSuggestionsPrompt },
   { key: "tool_health", builder: buildToolHealthPrompt },
+  { key: "room_to_learn", builder: buildRoomToLearnPrompt },
   { key: "horizon", builder: buildHorizonPrompt },
 ];
 
