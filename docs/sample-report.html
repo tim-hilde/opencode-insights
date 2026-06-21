@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpenCode Insights</title>
+<script>try{if((localStorage.getItem('theme')||'light')==='dark')document.documentElement.dataset.theme='dark';}catch(e){}</script>
+<style>
+:root{
+  --ivory:#FAF9F5; --paper:#FFFFFF;
+  --g100:#F0EEE6; --g200:#E6E3DA; --g300:#D1CFC5; --g500:#6A6960; --g700:#3D3D3A;
+  --slate:#141413; --clay:#D97757; --clay-d:#B85C3E; --clay-text:#9C4A2E; --rust:#B04A3F; --olive:#788C5D; --olive-text:#5F7048; --oat:#E3DACC;
+  --serif:ui-serif,Georgia,"Times New Roman",Times,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Monaco,Consolas,monospace;
+  --radius-panel:12px; --radius-row:8px; --border:1.5px solid var(--g300);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ivory);color:var(--slate);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:40px 24px 120px}
+h1{font-family:var(--serif);font-weight:500;font-size:36px;letter-spacing:-.01em;line-height:1.2;margin:0 0 6px}
+h2{font-family:var(--serif);font-weight:500;font-size:22px;letter-spacing:-.01em;margin:0 0 16px}
+h3{font-family:var(--serif);font-weight:500;font-size:16px;margin:20px 0 6px}
+hr{border:none;border-top:var(--border);margin:24px 0}
+a{color:var(--clay);text-decoration:none}a:hover{color:var(--clay-d);text-decoration:underline}
+code,pre{font-family:var(--mono);background:var(--g100);border-radius:6px}
+code{padding:1px 5px;font-size:.86em}
+pre{padding:12px 14px;overflow:auto;border:var(--border);white-space:pre-wrap;word-break:break-word;margin:8px 0}
+.panel,.card{background:var(--paper);border:var(--border);border-radius:var(--radius-panel);padding:18px}
+.muted{color:var(--g500)}
+button{font:inherit;cursor:pointer;border:var(--border);background:var(--paper);color:var(--slate);border-radius:9px;padding:8px 14px}
+button.primary{background:var(--clay);border-color:var(--clay);color:var(--paper);font-weight:600}
+button:hover{filter:brightness(.97)}
+
+/* Sticky nav */
+.section-nav{position:sticky;top:0;background:var(--paper);border-bottom:var(--border);padding:10px 0;z-index:100}
+.section-nav .inner{max-width:920px;margin:0 auto;padding:0 24px;display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.section-nav a{font-size:12px;color:var(--g500);text-decoration:none;padding:4px 10px;border-radius:6px;white-space:nowrap;transition:color .15s}
+.section-nav a:hover{color:var(--clay-text)}
+
+/* Skip link (visible on keyboard focus) */
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--clay);color:var(--paper);padding:8px 14px;border-radius:0 0 8px 0;z-index:200;font-weight:600}
+.skip-link:focus{left:0}
+
+/* Page sections */
+section{margin:40px 0}
+section[id]{scroll-margin-top:52px}
+.section-header{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;padding-bottom:10px;border-bottom:var(--border)}
+.section-header h2{margin:0}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:16px 0}
+.stat{background:var(--paper);border:var(--border);border-radius:var(--radius-row);padding:12px 16px}
+.stat-label{font-size:11px;color:var(--g500);text-transform:uppercase;letter-spacing:.06em}
+.stat-value{font-size:22px;font-weight:600;color:var(--slate);font-family:var(--mono)}
+
+/* At a glance */
+.at-a-glance{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:8px 0}
+@media(max-width:600px){.at-a-glance{grid-template-columns:1fr}}
+.glance-item{background:var(--paper);border:var(--border);border-radius:var(--radius-panel);padding:16px}
+.glance-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--clay-text);margin-bottom:8px}
+.glance-sub{margin:6px 0}
+.glance-sub-label{font-weight:600;color:var(--g700)}
+
+/* Bar chart */
+.bar-chart{margin:16px 0}
+.bar-chart-title{font-size:11px;color:var(--g500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.bar-row{display:grid;grid-template-columns:150px 1fr auto;align-items:center;gap:12px;margin-bottom:9px}
+.bar-label{font-size:12px;color:var(--g700);text-align:right;line-height:1.3;overflow-wrap:anywhere}
+.bar-track{height:10px;background:var(--g100);border-radius:5px;overflow:hidden;min-width:36px}
+.bar-fill{height:100%;border-radius:5px}
+.bar-value{font-size:12px;color:var(--g700);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:768px){
+  .bar-row{grid-template-columns:1fr auto;column-gap:12px;row-gap:4px}
+  .bar-label{grid-column:1 / -1;text-align:left}
+}
+
+/* Key insight */
+.key-insight{background:var(--oat);border-left:3px solid var(--clay);padding:12px 16px;margin:12px 0;border-radius:0 6px 6px 0;font-size:14px;color:var(--g700)}
+
+/* Friction */
+.friction-item{border-left:3px solid var(--rust);padding:6px 0 6px 14px;margin:10px 0}
+
+/* Room to Learn */
+.learn-step{font-size:14px;color:var(--g700)}
+.learn-step-label{font-weight:600;color:var(--clay-text)}
+
+/* Tag & badge */
+.tag{display:inline-block;background:var(--g100);border:var(--border);border-radius:4px;padding:2px 8px;font-size:12px;margin:2px}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:4px;border:1.5px solid currentColor}
+.badge-low{color:var(--olive-text)}
+.badge-medium{color:var(--clay-text)}
+.badge-high{color:var(--rust)}
+
+/* Simple list */
+.list-simple{list-style:none;padding:0;margin:8px 0}
+.list-simple li{padding:5px 0;border-bottom:1px solid var(--g100);font-size:14px;color:var(--g700)}
+.list-simple li:last-child{border-bottom:none}
+.list-simple li::before{content:"→\00a0";color:var(--clay)}
+
+/* Collapsible sections (native <details>) */
+.section{margin:0}
+summary.section-header{cursor:pointer;align-items:center;list-style:none}
+summary.section-header::-webkit-details-marker{display:none}
+summary.section-header::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--g500);border-bottom:2px solid var(--g500);transform:rotate(-45deg);transition:transform .2s;flex:none}
+details[open] > summary.section-header::after{transform:rotate(45deg)}
+summary.section-header:hover{color:var(--clay-text)}
+summary.section-header:hover::after{border-color:var(--clay)}
+summary.section-header:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+
+/* Action bar */
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
+.nav-toggle{margin-left:auto;font-size:12px;padding:3px 12px;border-radius:6px}
+
+/* Opt-in dark mode — warm token overrides, accents kept */
+:root[data-theme="dark"]{
+  --ivory:#1A1917; --paper:#211F1C; --g100:#272521; --g200:#302D28; --g300:#3C3833;
+  --g500:#9A968C; --g700:#CFCABD; --slate:#F2EFE8; --oat:#3A332A;
+  --clay-text:#E0916F; --olive-text:#9DB47E;
+}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main-content">Skip to content</a>
+
+<nav class="section-nav" aria-label="Report sections">
+  <div class="inner"><a href="#at-a-glance">At a Glance</a><a href="#project-areas">Project Areas</a><a href="#agent-performance">Agent Performance</a><a href="#cost">Cost Intelligence</a><a href="#interaction-friction">Interaction &amp; Friction</a><a href="#suggestions">Suggestions</a><a href="#delegation">Delegation</a><a href="#tool-health">Tool Health</a><a href="#room-to-learn">Room to Learn</a><a href="#horizon">On the Horizon</a><button id="theme-toggle" class="nav-toggle" type="button" aria-label="Toggle dark mode">Dark</button></div>
+</nav>
+
+<main class="wrap" id="main-content">
+
+  <h1>OpenCode Insights</h1>
+  <p class="muted">May 22, 2026 – Jun 21, 2026</p>
+
+  <div class="stats-grid">
+    <div class="stat">
+      <div class="stat-label">Sessions</div>
+      <div class="stat-value">22</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Analyzed</div>
+      <div class="stat-value">19</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Tokens</div>
+      <div class="stat-value">5.8M</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Total Cost</div>
+      <div class="stat-value">$7.4213</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Messages</div>
+      <div class="stat-value">2K</div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="primary" type="button" onclick="exportJson()">Export insights.json</button>
+    <button type="button" onclick="toggleAll(true)">Expand all</button>
+    <button type="button" onclick="toggleAll(false)">Collapse all</button>
+  </div>
+
+  <section id="at-a-glance">
+    <details class="section" open>
+      <summary class="section-header"><h2>At a Glance</h2></summary>
+      <div class="at-a-glance">
+    <div class="glance-item">
+      <div class="glance-label">What's Working</div>
+      <div><div class="glance-sub"><span class="glance-sub-label">Your Direction:</span> You set tight goals and steer with crisp corrections, keeping sessions on track.</div><div class="glance-sub"><span class="glance-sub-label">Your Agent's Execution:</span> Your agent edits across files methodically and verifies before declaring done.</div></div>
+    </div>
+    <div class="glance-item">
+      <div class="glance-label">What's Hindering</div>
+      <div><div class="glance-sub"><span class="glance-sub-label">Agent:</span> It occasionally over-engineers before you redirect it to a simpler path.</div><div class="glance-sub"><span class="glance-sub-label">User-side:</span> Context (file paths, failing tests) is sometimes missing at the start.</div><div class="glance-sub"><span class="glance-sub-label">Tooling &amp; Environment:</span> The insights tool can time out on very large date ranges.</div></div>
+    </div>
+    <div class="glance-item">
+      <div class="glance-label">Quick Wins</div>
+      <div>Adopt a /review skill and an AGENTS.md rule to run tests before claiming a fix is done.</div>
+    </div>
+    <div class="glance-item">
+      <div class="glance-label">Ambitious Workflows</div>
+      <div>As models improve, a nightly headless insights run could post a ready-to-skim report each morning.</div>
+    </div>
+  </div>
+    </details>
+  </section>
+
+  
+  <section id="project-areas">
+    <details class="section" open>
+      <summary class="section-header"><h2>Project Areas</h2></summary>
+      <div class="panel">
+    <div class="card" style="margin:8px 0">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+        <strong>Insights Pipeline</strong>
+        <span class="tag">9 sessions</span>
+      </div>
+      <p style="margin:0 0 6px">Building the OpenCode usage-analysis pipeline: DB extraction, LLM facet analysis, and HTML reporting.</p>
+      <div><span class="tag">harden prompts against injection</span><span class="tag">split at-a-glance attribution</span><span class="tag">add Room to Learn section</span></div>
+    </div>
+    <div class="card" style="margin:8px 0">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+        <strong>Report Rendering</strong>
+        <span class="tag">6 sessions</span>
+      </div>
+      <p style="margin:0 0 6px">The self-contained HTML report template and its design system.</p>
+      <div><span class="tag">align report to html-artifacts skill</span><span class="tag">add collapsible sections</span><span class="tag">opt-in dark mode</span></div>
+    </div>
+    <div class="card" style="margin:8px 0">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+        <strong>Release &amp; CI</strong>
+        <span class="tag">4 sessions</span>
+      </div>
+      <p style="margin:0 0 6px">semantic-release, changelog, npm publishing and version bookkeeping.</p>
+      <div><span class="tag">fix release scope</span><span class="tag">update readme version</span></div>
+    </div>
+    <div class="card" style="margin:8px 0">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+        <strong>Cost &amp; Caching</strong>
+        <span class="tag">3 sessions</span>
+      </div>
+      <p style="margin:0 0 6px">Token-cost accounting and cache-efficiency analysis across models.</p>
+      <div><span class="tag">extract clean model names</span><span class="tag">cost per 1k tokens</span></div>
+    </div></div>
+    </details>
+  </section>
+  
+  <section id="agent-performance">
+    <details class="section" open>
+      <summary class="section-header"><h2>Agent Performance</h2></summary>
+      <div class="panel"><div class="bar-chart" role="img" aria-label="Agent usage (sessions) — build: 14, explore: 5, general: 3">
+    <div class="bar-chart-title" aria-hidden="true">Agent usage (sessions)</div>
+    <div class="bar-row">
+      <span class="bar-label">build</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:100%;background:var(--clay)"></div></div>
+      <span class="bar-value">14</span>
+    </div><div class="bar-row">
+      <span class="bar-label">explore</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:36%;background:var(--clay)"></div></div>
+      <span class="bar-value">5</span>
+    </div><div class="bar-row">
+      <span class="bar-label">general</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:21%;background:var(--clay)"></div></div>
+      <span class="bar-value">3</span>
+    </div>
+  </div>
+        <div class="card" style="margin:8px 0">
+          <strong>build</strong>
+          <p style="margin:4px 0">Methodical multi-file edits with verification before claiming done.</p>
+          <span class="muted">You reach for it on feature work and refactors.</span>
+        </div>
+        <div class="card" style="margin:8px 0">
+          <strong>explore</strong>
+          <p style="margin:4px 0">Fast codebase reconnaissance without loading raw files into context.</p>
+          <span class="muted">Used up front to map unfamiliar areas.</span>
+        </div><h3>Cost Insights</h3><ul class="list-simple"><li>Sonnet handles ~80% of sessions at a fraction of Opus cost.</li><li>Cache hits on the largest model cut repeat-analysis spend noticeably.</li></ul><h3>Model Pairing Tips</h3><ul class="list-simple"><li>Route exploration to a cheaper model; reserve Opus for final synthesis.</li><li>Batch related edits into one session to maximize prompt-cache reuse.</li></ul><h3>Efficiency Opportunities</h3><ul class="list-simple"><li>Collapse warmup sessions out of analysis to save tokens.</li><li>Reuse the v2 facet cache across re-runs of the same date range.</li></ul></div>
+    </details>
+  </section>
+  
+  <section id="cost">
+    <details class="section" open>
+      <summary class="section-header"><h2>Cost Intelligence</h2></summary>
+      <div class="panel"><div class="bar-chart" role="img" aria-label="Cost by model — claude-sonnet-4-5: $5.2400, claude-opus-4: $2.1800">
+    <div class="bar-chart-title" aria-hidden="true">Cost by model</div>
+    <div class="bar-row">
+      <span class="bar-label">claude-sonnet-4-5</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:100%;background:var(--olive)"></div></div>
+      <span class="bar-value">$5.2400</span>
+    </div><div class="bar-row">
+      <span class="bar-label">claude-opus-4</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:42%;background:var(--olive)"></div></div>
+      <span class="bar-value">$2.1800</span>
+    </div>
+  </div><div class="bar-chart" role="img" aria-label="Cache hit ratio by model — claude-sonnet-4-5: 71.0%, claude-opus-4: 55.0%">
+    <div class="bar-chart-title" aria-hidden="true">Cache hit ratio by model</div>
+    <div class="bar-row">
+      <span class="bar-label">claude-sonnet-4-5</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:71%;background:var(--olive)"></div></div>
+      <span class="bar-value">71.0%</span>
+    </div><div class="bar-row">
+      <span class="bar-label">claude-opus-4</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:55%;background:var(--olive)"></div></div>
+      <span class="bar-value">55.0%</span>
+    </div>
+  </div><h3>Cost per 1k tokens</h3><div class="stats-grid">
+        <div class="stat">
+          <div class="stat-label">claude-opus-4</div>
+          <div class="stat-value" style="font-size:16px">$0.0180</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">claude-sonnet-4-5</div>
+          <div class="stat-value" style="font-size:16px">$0.0036</div>
+        </div></div></div>
+    </details>
+  </section>
+  
+  <section id="interaction-friction">
+    <details class="section" open>
+      <summary class="section-header"><h2>Interaction &amp; Friction</h2></summary>
+      <div class="panel"><div class="key-insight">You give a tight goal, then steer with short corrections rather than long specs.</div><h3>Growth Areas</h3><ul class="list-simple"><li>Provide file/context paths up front to cut the agent&#x27;s discovery passes.</li><li>Invoke skills explicitly when a task matches one instead of describing the workflow.</li></ul><hr style="border:none;border-top:var(--border);margin:20px 0"><p>Most friction came from under-specified context and one flaky external tool, not from agent reasoning.</p>
+        <div class="friction-item">
+          <strong>Missing context up front</strong>
+          <p style="margin:4px 0">You (user-side) often start without naming the target file, so the agent spends a turn locating it.</p>
+          <ul style="margin:4px 0;padding-left:18px"><li>A rename touched 8 files; the agent had to grep first.</li><li>A bug report omitted the failing test path.</li></ul>
+        </div>
+        <div class="friction-item">
+          <strong>Wrong approach picked</strong>
+          <p style="margin:4px 0">The agent occasionally over-engineered before you flagged a simpler path.</p>
+          <ul style="margin:4px 0;padding-left:18px"><li>A 200-line abstraction was reduced to 50 after review.</li></ul>
+        </div>
+        <div class="friction-item">
+          <strong>Tooling timeout</strong>
+          <p style="margin:4px 0">The insights tool (tooling) timed out on very large date ranges.</p>
+          <ul style="margin:4px 0;padding-left:18px"><li>A 90-day --all run exceeded the RPC window once.</li></ul>
+        </div></div>
+    </details>
+  </section>
+  
+  <section id="suggestions">
+    <details class="section" open>
+      <summary class="section-header"><h2>Suggestions</h2></summary>
+      <div class="panel"><h3>AGENTS.md Additions</h3>
+      <div class="card" style="margin:8px 0">
+        <strong>Always state the target file path when reporting a bug.</strong>
+        <p style="margin:4px 0">Removes a discovery turn.</p>
+        <span class="muted">Came up across 3 sessions this period.</span>
+      </div>
+      <div class="card" style="margin:8px 0">
+        <strong>Run the test suite before claiming a fix is done.</strong>
+        <p style="margin:4px 0">Catches regressions early.</p>
+        <span class="muted">Two fixes needed a follow-up after the fact.</span>
+      </div><h3>Features to Try</h3>
+      <div class="card" style="margin:8px 0">
+        <strong>Skills</strong> — Reusable /command prompt templates.
+        <p style="margin:4px 0">You repeat the same review+commit flow most sessions.</p>
+        <pre>/review then /commit</pre>
+      </div>
+      <div class="card" style="margin:8px 0">
+        <strong>AGENTS.md Rules</strong> — Project-wide instructions the agent always follows.
+        <p style="margin:4px 0">Your verification habit could be a standing rule.</p>
+        <pre>Always run `bun test` before declaring done.</pre>
+      </div><h3>Workflow Patterns</h3>
+      <div class="card" style="margin:8px 0">
+        <strong>Spec-then-build</strong> — Fewer wrong-approach detours.
+        <p style="margin:4px 0">Write the success criteria as a one-liner before coding.</p>
+        <pre>Before implementing, restate the success criteria and the files you&#x27;ll touch.</pre>
+      </div></div>
+    </details>
+  </section>
+  
+  <section id="delegation">
+    <details class="section" open>
+      <summary class="section-header"><h2>Delegation Topology</h2></summary>
+      <div class="panel"><div class="stats-grid" style="margin-bottom:16px">
+    <div class="stat"><div class="stat-label">Delegations</div><div class="stat-value">17</div></div>
+    <div class="stat"><div class="stat-label">Agent Pairs</div><div class="stat-value">3</div></div>
+  </div><div class="bar-chart" role="img" aria-label="Delegations by agent pair — build → explore: 11, build → general: 4, general → explore: 2">
+    <div class="bar-chart-title" aria-hidden="true">Delegations by agent pair</div>
+    <div class="bar-row">
+      <span class="bar-label">build → explore</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:100%;background:var(--g500)"></div></div>
+      <span class="bar-value">11</span>
+    </div><div class="bar-row">
+      <span class="bar-label">build → general</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:36%;background:var(--g500)"></div></div>
+      <span class="bar-value">4</span>
+    </div><div class="bar-row">
+      <span class="bar-label">general → explore</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:18%;background:var(--g500)"></div></div>
+      <span class="bar-value">2</span>
+    </div>
+  </div></div>
+    </details>
+  </section>
+  
+  <section id="tool-health">
+    <details class="section" open>
+      <summary class="section-header"><h2>Tool Health</h2></summary>
+      <div class="panel"><div class="bar-chart" role="img" aria-label="Tool usage (calls) — edit: 412, bash: 388, read: 305, grep: 142, glob: 96, webfetch: 33">
+    <div class="bar-chart-title" aria-hidden="true">Tool usage (calls)</div>
+    <div class="bar-row">
+      <span class="bar-label">edit</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:100%;background:var(--clay)"></div></div>
+      <span class="bar-value">412</span>
+    </div><div class="bar-row">
+      <span class="bar-label">bash</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:94%;background:var(--clay)"></div></div>
+      <span class="bar-value">388</span>
+    </div><div class="bar-row">
+      <span class="bar-label">read</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:74%;background:var(--clay)"></div></div>
+      <span class="bar-value">305</span>
+    </div><div class="bar-row">
+      <span class="bar-label">grep</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:34%;background:var(--clay)"></div></div>
+      <span class="bar-value">142</span>
+    </div><div class="bar-row">
+      <span class="bar-label">glob</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:23%;background:var(--clay)"></div></div>
+      <span class="bar-value">96</span>
+    </div><div class="bar-row">
+      <span class="bar-label">webfetch</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:8%;background:var(--clay)"></div></div>
+      <span class="bar-value">33</span>
+    </div>
+  </div><div class="bar-chart" role="img" aria-label="Error rate by tool — webfetch: 18.0%, bash: 6.0%, edit: 2.0%">
+    <div class="bar-chart-title" aria-hidden="true">Error rate by tool</div>
+    <div class="bar-row">
+      <span class="bar-label">webfetch</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:18%;background:var(--rust)"></div></div>
+      <span class="bar-value">18.0%</span>
+    </div><div class="bar-row">
+      <span class="bar-label">bash</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:6%;background:var(--rust)"></div></div>
+      <span class="bar-value">6.0%</span>
+    </div><div class="bar-row">
+      <span class="bar-label">edit</span>
+      <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:2%;background:var(--rust)"></div></div>
+      <span class="bar-value">2.0%</span>
+    </div>
+  </div>
+        <div class="friction-item">
+          <strong>webfetch</strong>
+          <span class="tag" style="border-color:var(--rust);color:var(--rust)">18%</span>
+          <p style="margin:4px 0">SPA pages that need JS rendering return empty content.</p>
+        </div><h3>Efficiency Tips</h3><ul class="list-simple"><li>Prefer grep/glob over reading whole files when you only need a match.</li><li>Batch independent reads in one step instead of sequential calls.</li></ul><h3>Recovery Patterns</h3><ul class="list-simple"><li>On a tool timeout, narrow the date range and retry.</li><li>When webfetch returns empty, fall back to the indexed cache.</li></ul></div>
+    </details>
+  </section>
+  
+  <section id="room-to-learn">
+    <details class="section" open>
+      <summary class="section-header"><h2>Room to Learn</h2></summary>
+      <div class="panel"><p>A few areas drawn from your actual sessions where deeper knowledge would raise your ceiling.</p>
+    <div class="card" style="margin:8px 0">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+        <strong>Prompt-injection defense</strong>
+        <span class="tag">concept</span>
+      </div>
+      <p style="margin:0 0 6px">You hardened prompts with nonce delimiters — formalizing the threat model would extend that strength.</p>
+      <div class="learn-step"><span class="learn-step-label">Start here:</span> Read the OWASP LLM01 prompt-injection entry and map it to your wrapUntrusted guard.</div>
+    </div>
+    <div class="card" style="margin:8px 0">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+        <strong>Prompt caching economics</strong>
+        <span class="tag">domain</span>
+      </div>
+      <p style="margin:0 0 6px">Your cost work touches cache ratios; understanding provider cache windows would sharpen routing.</p>
+      <div class="learn-step"><span class="learn-step-label">Start here:</span> Compare cache-hit pricing across your two main models for one real session.</div>
+    </div>
+    <div class="card" style="margin:8px 0">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+        <strong>SQLite FTS / query tuning</strong>
+        <span class="tag">tooling</span>
+      </div>
+      <p style="margin:0 0 6px">The extraction layer leans on SQLite; indexing know-how cuts analysis time.</p>
+      <div class="learn-step"><span class="learn-step-label">Start here:</span> EXPLAIN QUERY PLAN your hottest extraction query.</div>
+    </div>
+    <div class="card" style="margin:8px 0">
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+        <strong>Test-driven development</strong>
+        <span class="tag">workflow</span>
+      </div>
+      <p style="margin:0 0 6px">Two fixes needed follow-ups; a failing test first would have caught them.</p>
+      <div class="learn-step"><span class="learn-step-label">Start here:</span> Next bugfix: write the reproducing test before the fix.</div>
+    </div></div>
+    </details>
+  </section>
+  
+  <section id="horizon">
+    <details class="section" open>
+      <summary class="section-header"><h2>On the Horizon</h2></summary>
+      <div class="panel"><h3>Automation Opportunities</h3>
+      <div class="card" style="margin:8px 0">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+          <strong>Nightly insights run in headless mode</strong>
+          <span class="badge badge-low">low</span>
+        </div>
+        <p style="margin:0">`opencode run` on a cron, write the report to docs/.</p>
+      </div>
+      <div class="card" style="margin:8px 0">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+          <strong>Auto-open report after generation</strong>
+          <span class="badge badge-medium">medium</span>
+        </div>
+        <p style="margin:0">Post-generate hook that opens the HTML file.</p>
+      </div><h3>Skill Gaps</h3><ul class="list-simple"><li>A /release skill to wrap the semantic-release + readme-version steps.</li><li>A /report skill that runs insights for the current project.</li></ul><h3>Workflow Evolutions</h3><ul class="list-simple"><li>Move from manual review to a standing AGENTS.md verification rule.</li><li>Treat the HTML report as the shareable source of truth in standups.</li></ul></div>
+    </details>
+  </section>
+
+  <footer style="border-top:var(--border);padding:24px 0;margin-top:48px;color:var(--g500);font-size:12px">
+    Generated by opencode-insights · 6/21/2026, 7:29:36 PM
+  </footer>
+
+</main>
+
+<script type="application/json" id="insights-data">{
+  "stats": {
+    "totalSessions": 22,
+    "analyzedSessions": 19,
+    "dateRange": {
+      "from": 1779470976381,
+      "to": 1782062976381
+    },
+    "totalMessages": 1840,
+    "totalCost": 7.4213,
+    "totalTokens": 5820000,
+    "topTools": [
+      {
+        "tool": "edit",
+        "count": 412
+      },
+      {
+        "tool": "bash",
+        "count": 388
+      },
+      {
+        "tool": "read",
+        "count": 305
+      },
+      {
+        "tool": "grep",
+        "count": 142
+      },
+      {
+        "tool": "glob",
+        "count": 96
+      },
+      {
+        "tool": "webfetch",
+        "count": 33
+      }
+    ],
+    "topAgents": [
+      {
+        "agent": "build",
+        "count": 14
+      },
+      {
+        "agent": "explore",
+        "count": 5
+      },
+      {
+        "agent": "general",
+        "count": 3
+      }
+    ],
+    "topModels": [
+      {
+        "model": "claude-sonnet-4-5",
+        "count": 16
+      },
+      {
+        "model": "claude-opus-4",
+        "count": 4
+      }
+    ],
+    "byAgentModel": [
+      {
+        "agent": "build",
+        "model": "claude-sonnet-4-5",
+        "cost": 3.91
+      },
+      {
+        "agent": "build",
+        "model": "claude-opus-4",
+        "cost": 2.18
+      },
+      {
+        "agent": "explore",
+        "model": "claude-sonnet-4-5",
+        "cost": 0.86
+      },
+      {
+        "agent": "general",
+        "model": "claude-sonnet-4-5",
+        "cost": 0.47
+      }
+    ],
+    "toolErrorRates": [
+      {
+        "tool": "webfetch",
+        "errorRate": 0.18
+      },
+      {
+        "tool": "bash",
+        "errorRate": 0.06
+      },
+      {
+        "tool": "edit",
+        "errorRate": 0.02
+      }
+    ],
+    "cacheEfficiency": [
+      {
+        "model": "claude-sonnet-4-5",
+        "cacheRatio": 0.71
+      },
+      {
+        "model": "claude-opus-4",
+        "cacheRatio": 0.55
+      }
+    ],
+    "costPer1k": [
+      {
+        "model": "claude-opus-4",
+        "costPer1kTokens": 0.018
+      },
+      {
+        "model": "claude-sonnet-4-5",
+        "costPer1kTokens": 0.0036
+      }
+    ],
+    "agentDelegation": [
+      {
+        "parentAgent": "build",
+        "childAgent": "explore",
+        "count": 11
+      },
+      {
+        "parentAgent": "build",
+        "childAgent": "general",
+        "count": 4
+      },
+      {
+        "parentAgent": "general",
+        "childAgent": "explore",
+        "count": 2
+      }
+    ]
+  },
+  "aggregates": {
+    "project_areas": {
+      "areas": [
+        {
+          "name": "Insights Pipeline",
+          "description": "Building the OpenCode usage-analysis pipeline: DB extraction, LLM facet analysis, and HTML reporting.",
+          "session_count": 9,
+          "example_goals": [
+            "harden prompts against injection",
+            "split at-a-glance attribution",
+            "add Room to Learn section"
+          ]
+        },
+        {
+          "name": "Report Rendering",
+          "description": "The self-contained HTML report template and its design system.",
+          "session_count": 6,
+          "example_goals": [
+            "align report to html-artifacts skill",
+            "add collapsible sections",
+            "opt-in dark mode"
+          ]
+        },
+        {
+          "name": "Release & CI",
+          "description": "semantic-release, changelog, npm publishing and version bookkeeping.",
+          "session_count": 4,
+          "example_goals": [
+            "fix release scope",
+            "update readme version"
+          ]
+        },
+        {
+          "name": "Cost & Caching",
+          "description": "Token-cost accounting and cache-efficiency analysis across models.",
+          "session_count": 3,
+          "example_goals": [
+            "extract clean model names",
+            "cost per 1k tokens"
+          ]
+        }
+      ]
+    },
+    "agent_performance": {
+      "top_performers": [
+        {
+          "agent": "build",
+          "strength": "Methodical multi-file edits with verification before claiming done.",
+          "usage_pattern": "You reach for it on feature work and refactors."
+        },
+        {
+          "agent": "explore",
+          "strength": "Fast codebase reconnaissance without loading raw files into context.",
+          "usage_pattern": "Used up front to map unfamiliar areas."
+        }
+      ],
+      "cost_insights": [
+        "Sonnet handles ~80% of sessions at a fraction of Opus cost.",
+        "Cache hits on the largest model cut repeat-analysis spend noticeably."
+      ],
+      "model_pairing_tips": [
+        "Route exploration to a cheaper model; reserve Opus for final synthesis.",
+        "Batch related edits into one session to maximize prompt-cache reuse."
+      ],
+      "efficiency_opportunities": [
+        "Collapse warmup sessions out of analysis to save tokens.",
+        "Reuse the v2 facet cache across re-runs of the same date range."
+      ]
+    },
+    "interaction_style": {
+      "key_patterns": [
+        "You give a tight goal, then steer with short corrections rather than long specs."
+      ],
+      "growth_areas": [
+        "Provide file/context paths up front to cut the agent's discovery passes.",
+        "Invoke skills explicitly when a task matches one instead of describing the workflow."
+      ]
+    },
+    "friction": {
+      "intro": "Most friction came from under-specified context and one flaky external tool, not from agent reasoning.",
+      "categories": [
+        {
+          "category": "Missing context up front",
+          "description": "You (user-side) often start without naming the target file, so the agent spends a turn locating it.",
+          "examples": [
+            "A rename touched 8 files; the agent had to grep first.",
+            "A bug report omitted the failing test path."
+          ]
+        },
+        {
+          "category": "Wrong approach picked",
+          "description": "The agent occasionally over-engineered before you flagged a simpler path.",
+          "examples": [
+            "A 200-line abstraction was reduced to 50 after review."
+          ]
+        },
+        {
+          "category": "Tooling timeout",
+          "description": "The insights tool (tooling) timed out on very large date ranges.",
+          "examples": [
+            "A 90-day --all run exceeded the RPC window once."
+          ]
+        }
+      ]
+    },
+    "suggestions": {
+      "agents_md_additions": [
+        {
+          "rule": "Always state the target file path when reporting a bug.",
+          "rationale": "Removes a discovery turn.",
+          "why_now": "Came up across 3 sessions this period."
+        },
+        {
+          "rule": "Run the test suite before claiming a fix is done.",
+          "rationale": "Catches regressions early.",
+          "why_now": "Two fixes needed a follow-up after the fact."
+        }
+      ],
+      "features_to_try": [
+        {
+          "feature": "Skills",
+          "one_liner": "Reusable /command prompt templates.",
+          "why_for_you": "You repeat the same review+commit flow most sessions.",
+          "example": "/review then /commit"
+        },
+        {
+          "feature": "AGENTS.md Rules",
+          "one_liner": "Project-wide instructions the agent always follows.",
+          "why_for_you": "Your verification habit could be a standing rule.",
+          "example": "Always run `bun test` before declaring done."
+        }
+      ],
+      "workflow_patterns": [
+        {
+          "pattern": "Spec-then-build",
+          "benefit": "Fewer wrong-approach detours.",
+          "how_to": "Write the success criteria as a one-liner before coding.",
+          "copyable_prompt": "Before implementing, restate the success criteria and the files you'll touch."
+        }
+      ]
+    },
+    "tool_health": {
+      "problematic_tools": [
+        {
+          "tool": "webfetch",
+          "error_rate": "18%",
+          "likely_cause": "SPA pages that need JS rendering return empty content."
+        }
+      ],
+      "efficiency_tips": [
+        "Prefer grep/glob over reading whole files when you only need a match.",
+        "Batch independent reads in one step instead of sequential calls."
+      ],
+      "recovery_patterns": [
+        "On a tool timeout, narrow the date range and retry.",
+        "When webfetch returns empty, fall back to the indexed cache."
+      ]
+    },
+    "room_to_learn": {
+      "intro": "A few areas drawn from your actual sessions where deeper knowledge would raise your ceiling.",
+      "areas": [
+        {
+          "topic": "Prompt-injection defense",
+          "type": "concept",
+          "rationale": "You hardened prompts with nonce delimiters — formalizing the threat model would extend that strength.",
+          "first_step": "Read the OWASP LLM01 prompt-injection entry and map it to your wrapUntrusted guard."
+        },
+        {
+          "topic": "Prompt caching economics",
+          "type": "domain",
+          "rationale": "Your cost work touches cache ratios; understanding provider cache windows would sharpen routing.",
+          "first_step": "Compare cache-hit pricing across your two main models for one real session."
+        },
+        {
+          "topic": "SQLite FTS / query tuning",
+          "type": "tooling",
+          "rationale": "The extraction layer leans on SQLite; indexing know-how cuts analysis time.",
+          "first_step": "EXPLAIN QUERY PLAN your hottest extraction query."
+        },
+        {
+          "topic": "Test-driven development",
+          "type": "workflow",
+          "rationale": "Two fixes needed follow-ups; a failing test first would have caught them.",
+          "first_step": "Next bugfix: write the reproducing test before the fix."
+        }
+      ]
+    },
+    "horizon": {
+      "automation_opportunities": [
+        {
+          "opportunity": "Nightly insights run in headless mode",
+          "how": "`opencode run` on a cron, write the report to docs/.",
+          "effort": "low"
+        },
+        {
+          "opportunity": "Auto-open report after generation",
+          "how": "Post-generate hook that opens the HTML file.",
+          "effort": "medium"
+        }
+      ],
+      "skill_gaps": [
+        "A /release skill to wrap the semantic-release + readme-version steps.",
+        "A /report skill that runs insights for the current project."
+      ],
+      "workflow_evolutions": [
+        "Move from manual review to a standing AGENTS.md verification rule.",
+        "Treat the HTML report as the shareable source of truth in standups."
+      ]
+    }
+  },
+  "atAGlance": {
+    "whats_working": {
+      "your_direction": "You set tight goals and steer with crisp corrections, keeping sessions on track.",
+      "agent_execution": "Your agent edits across files methodically and verifies before declaring done."
+    },
+    "whats_hindering": {
+      "agent": "It occasionally over-engineers before you redirect it to a simpler path.",
+      "user_side": "Context (file paths, failing tests) is sometimes missing at the start.",
+      "tooling": "The insights tool can time out on very large date ranges."
+    },
+    "quick_wins": "Adopt a /review skill and an AGENTS.md rule to run tests before claiming a fix is done.",
+    "ambitious_workflows": "As models improve, a nightly headless insights run could post a ready-to-skim report each morning."
+  }
+}</script>
+<script>
+function exportJson() {
+  const data = document.getElementById('insights-data').textContent;
+  const blob = new Blob([data], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'insights.json';
+  a.click();
+}
+function toggleAll(open) {
+  document.querySelectorAll('details.section').forEach((d) => { d.open = open; });
+}
+(function () {
+  const root = document.documentElement;
+  const btn = document.getElementById('theme-toggle');
+  if (!btn) return;
+  const sync = () => { btn.textContent = root.dataset.theme === 'dark' ? 'Light' : 'Dark'; };
+  btn.addEventListener('click', () => {
+    const dark = root.dataset.theme === 'dark';
+    root.dataset.theme = dark ? '' : 'dark';
+    try { localStorage.setItem('theme', dark ? 'light' : 'dark'); } catch (e) {}
+    sync();
+  });
+  sync();
+})();
+</script>
+</body>
+</html>

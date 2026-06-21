@@ -3,6 +3,7 @@ reference/
 dist/
 *.html
 !test/*.html
+!docs/sample-report.html
 *.json.tmp
 bun.lockb
 *.tgz
