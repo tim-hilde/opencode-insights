@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/tim-hilde/opencode-insights/compare/v1.1.3...v1.2.0) (2026-06-21)
+
+
+### Features
+
+* add Room to Learn section and improve report accessibility ([1ead6a0](https://github.com/tim-hilde/opencode-insights/commit/1ead6a06b6dec19fdd386e9cc2d2d6772cb96936))
+
 ## [1.1.3](https://github.com/tim-hilde/opencode-insights/compare/v1.1.2...v1.1.3) (2026-06-18)
 
 
