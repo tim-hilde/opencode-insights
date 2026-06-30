@@ -124,6 +124,10 @@ export interface InsightsConfig {
   maxSessions: number;
   projectOnly: boolean;
   output: string;
+  /** Additional attempts after the first on a failed LLM call. Defaults to runLlm's default. */
+  maxRetries?: number;
+  /** Base delay (ms) for exponential backoff between LLM retries. Defaults to runLlm's default. */
+  retryDelayMs?: number;
 }
 
 export const DEFAULT_MODEL: InsightsModel = {

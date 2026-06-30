@@ -2,7 +2,7 @@ import type { Database } from "bun:sqlite";
 import type { FacetCache } from "./cache.ts";
 import { getSessionMeta } from "./db.ts";
 import { reconstructTranscript } from "./extract.ts";
-import { extractJson, mapLimit, runLlm } from "./llm.ts";
+import { mapLimit, runLlm, runLlmJson } from "./llm.ts";
 import type { LlmClient } from "./llm.ts";
 import {
   buildAgentPerformancePrompt,
@@ -29,6 +29,14 @@ const MAX_NEW_SESSIONS = 200;
  *  so effective parallel LLM calls = config.concurrency × CHUNK_CONCURRENCY.
  */
 const CHUNK_CONCURRENCY = 1;
+
+/** Extracts the retry knobs from config so every analysis call shares one policy. */
+function retryOptsFrom(config: InsightsConfig): {
+  maxRetries?: number;
+  retryDelayMs?: number;
+} {
+  return { maxRetries: config.maxRetries, retryDelayMs: config.retryDelayMs };
+}
 
 export async function prepareTranscript(
   client: LlmClient,
@@ -130,8 +138,11 @@ export async function extractFacets(
         : "";
 
       const prompt = buildFacetPrompt(prepared, metaSummary);
-      const raw = await runLlm(client, { model: config.model, prompt });
-      const parsed = extractJson(raw);
+      const parsed = await runLlmJson(client, {
+        model: config.model,
+        prompt,
+        ...retryOptsFrom(config),
+      });
       const facet = normalizeFacet(sessionId, parsed);
 
       cache.put(sessionId, facet);
@@ -219,8 +230,11 @@ export async function runAggregateAnalysis(
   await mapLimit(AGGREGATE_PROMPTS, config.concurrency, async ({ key, builder }) => {
     try {
       const prompt = builder(rollupData);
-      const raw = await runLlm(client, { model: config.model, prompt });
-      results[key] = extractJson(raw);
+      results[key] = await runLlmJson(client, {
+        model: config.model,
+        prompt,
+        ...retryOptsFrom(config),
+      });
     } catch {
       results[key] = {};
     } finally {
@@ -249,8 +263,11 @@ export async function generateAtAGlance(
   };
   try {
     const prompt = buildAtAGlancePrompt(aggregates, statsSummary);
-    const raw = await runLlm(client, { model: config.model, prompt });
-    return extractJson(raw) as Record<string, unknown>;
+    return (await runLlmJson(client, {
+      model: config.model,
+      prompt,
+      ...retryOptsFrom(config),
+    })) as Record<string, unknown>;
   } catch {
     return {};
   }

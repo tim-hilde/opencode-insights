@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { JsonParseError, extractJson, mapLimit, runLlm } from "../src/llm.ts";
+import { JsonParseError, extractJson, mapLimit, runLlm, runLlmJson } from "../src/llm.ts";
 import type { LlmCallOptions, LlmClient } from "../src/llm.ts";
 
 function makeMockClient(responseText: string, shouldFail = false) {
@@ -38,7 +38,35 @@ function makeMockClient(responseText: string, shouldFail = false) {
 const baseOpts: LlmCallOptions = {
   model: { providerID: "anthropic", modelID: "claude-3-5-sonnet" },
   prompt: "test prompt",
+  retryDelayMs: 0,
 };
+
+function makeRetryClient(failTimes: number, responseText = "ok") {
+  let attempts = 0;
+  let deletes = 0;
+  return {
+    get attempts() {
+      return attempts;
+    },
+    get deletes() {
+      return deletes;
+    },
+    session: {
+      async create(_opts: { body: { title: string } }) {
+        return { data: { id: "retry-session" } };
+      },
+      async prompt(_opts: { path: { id: string }; body: unknown }) {
+        attempts++;
+        if (attempts <= failTimes) throw new Error("transient");
+        return { data: { info: {}, parts: [{ type: "text", text: responseText }] } };
+      },
+      async delete(_opts: { path: { id: string } }) {
+        deletes++;
+        return {};
+      },
+    } satisfies LlmClient["session"],
+  };
+}
 
 describe("runLlm", () => {
   it("returns concatenated text from text parts", async () => {
@@ -102,6 +130,69 @@ describe("runLlm", () => {
     };
     await runLlm(client, { ...baseOpts, system: "be concise" });
     expect(capturedSystem).toBe("be concise");
+  });
+});
+
+describe("runLlm retry", () => {
+  it("retries transient failures and returns once it succeeds", async () => {
+    const client = makeRetryClient(2, "recovered");
+    const result = await runLlm(client, baseOpts);
+    expect(result).toBe("recovered");
+    expect(client.attempts).toBe(3); // 2 failures + 1 success
+  });
+
+  it("throws the last error after exhausting all retries", async () => {
+    const client = makeRetryClient(99);
+    await expect(runLlm(client, { ...baseOpts, maxRetries: 2 })).rejects.toThrow("transient");
+    expect(client.attempts).toBe(3); // initial attempt + 2 retries
+  });
+
+  it("does not retry when maxRetries is 0", async () => {
+    const client = makeRetryClient(99);
+    await expect(runLlm(client, { ...baseOpts, maxRetries: 0 })).rejects.toThrow("transient");
+    expect(client.attempts).toBe(1);
+  });
+
+  it("cleans up the session on every attempt", async () => {
+    const client = makeRetryClient(2, "ok");
+    await runLlm(client, baseOpts);
+    expect(client.deletes).toBe(3);
+  });
+});
+
+describe("runLlmJson", () => {
+  it("returns parsed JSON on a clean response", async () => {
+    const client = makeMockClient('{"answer": 42}');
+    const result = await runLlmJson(client, baseOpts);
+    expect(result).toEqual({ answer: 42 });
+  });
+
+  it("retries when the model returns invalid JSON and succeeds on next attempt", async () => {
+    let calls = 0;
+    const client = makeMockClient("");
+    // biome-ignore lint/suspicious/noExplicitAny: test mock override
+    (client.session as any).prompt = async () => {
+      calls++;
+      const text = calls === 1 ? "not json at all" : '{"ok": true}';
+      return { data: { info: {}, parts: [{ type: "text", text }] } };
+    };
+    const result = await runLlmJson(client, baseOpts);
+    expect(result).toEqual({ ok: true });
+    expect(calls).toBe(2);
+  });
+
+  it("throws JsonParseError after exhausting retries on persistent bad JSON", async () => {
+    const client = makeMockClient("still not json");
+    await expect(runLlmJson(client, { ...baseOpts, maxRetries: 1 })).rejects.toBeInstanceOf(
+      JsonParseError,
+    );
+  });
+
+  it("throws on API error just like runLlm", async () => {
+    const client = makeMockClient("", true);
+    await expect(runLlmJson(client, { ...baseOpts, maxRetries: 0 })).rejects.toThrow(
+      "LLM call failed",
+    );
   });
 });
 

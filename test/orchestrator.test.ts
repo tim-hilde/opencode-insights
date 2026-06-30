@@ -280,6 +280,7 @@ describe("runInsights", () => {
           maxSessions: 200,
           projectOnly: false,
           output: outputPath,
+          maxRetries: 0, // assert a permanently-failing extraction is skipped, not retried
         },
       );
 

@@ -19,13 +19,37 @@ export interface LlmCallOptions {
   model: { providerID: string; modelID: string };
   prompt: string;
   system?: string;
+  /** Additional attempts after the first on a failed call. Default: 2. */
+  maxRetries?: number;
+  /** Base delay (ms) for exponential backoff between retries. Default: 500. */
+  retryDelayMs?: number;
 }
 
+const DEFAULT_MAX_RETRIES = 2;
+const DEFAULT_RETRY_DELAY_MS = 500;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export async function runLlm(client: LlmClient, opts: LlmCallOptions): Promise<string> {
+  const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const baseDelay = opts.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await runLlmOnce(client, opts);
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxRetries) await sleep(baseDelay * 2 ** attempt);
+    }
+  }
+  throw lastError;
+}
+
+async function runLlmOnce(client: LlmClient, opts: LlmCallOptions): Promise<string> {
   const createResult = await client.session.create({ body: { title: "[insights] analysis" } });
   const sessionId = (createResult as { data: { id: string } }).data.id;
 
-  let text = "";
   try {
     const promptResult = await client.session.prompt({
       path: { id: sessionId },
@@ -39,15 +63,19 @@ export async function runLlm(client: LlmClient, opts: LlmCallOptions): Promise<s
 
     const parts = (promptResult as { data: { parts: Array<{ type: string; text?: string }> } }).data
       .parts;
-    text = parts
+    return parts
       .filter((p) => p.type === "text")
       .map((p) => p.text ?? "")
       .join("");
   } finally {
-    await client.session.delete({ path: { id: sessionId } });
+    // Best-effort cleanup of the throwaway session: a delete failure must not mask
+    // the result/error above, nor trigger a pointless retry of the (paid) prompt.
+    try {
+      await client.session.delete({ path: { id: sessionId } });
+    } catch {
+      /* ignore */
+    }
   }
-
-  return text;
 }
 
 export class JsonParseError extends Error {
@@ -81,6 +109,28 @@ export function extractJson(text: string): unknown {
   } catch (e) {
     throw new JsonParseError(text, e);
   }
+}
+
+/**
+ * Like runLlm, but additionally parses the response as JSON and retries on
+ * both API errors and JSON parse failures (JsonParseError). Use this wherever
+ * the caller needs structured JSON output — it covers the full call+parse cycle.
+ */
+export async function runLlmJson(client: LlmClient, opts: LlmCallOptions): Promise<unknown> {
+  const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const baseDelay = opts.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const raw = await runLlmOnce(client, opts);
+      return extractJson(raw);
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxRetries) await sleep(baseDelay * 2 ** attempt);
+    }
+  }
+  throw lastError;
 }
 
 export async function mapLimit<T, R>(

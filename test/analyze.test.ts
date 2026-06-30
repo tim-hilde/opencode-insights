@@ -21,6 +21,7 @@ const defaultConfig = {
   maxSessions: 2,
   projectOnly: false,
   output: "/tmp/out.html",
+  retryDelayMs: 0, // no real backoff waits in tests
 };
 
 function makeJsonClient(responseObj: object): LlmClient {
@@ -186,7 +187,14 @@ describe("extractFacets", () => {
       },
     };
 
-    const results = await extractFacets(db, flakeyClient, ["s1", "s2"], defaultConfig, cache);
+    // maxRetries: 0 — assert a permanently-failing session is skipped (no retry recovery).
+    const results = await extractFacets(
+      db,
+      flakeyClient,
+      ["s1", "s2"],
+      { ...defaultConfig, maxRetries: 0 },
+      cache,
+    );
 
     expect(results.size).toBe(1);
     rmSync(cacheDir, { recursive: true });
