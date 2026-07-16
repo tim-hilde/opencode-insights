@@ -7,7 +7,7 @@ import {
   getAgentDelegation,
   getByAgentModel,
   getCacheEfficiency,
-  getCostPer1k,
+  getCostPerMTok,
   getSessionMeta,
   getTokenTotals,
   getToolErrorRates,
@@ -195,13 +195,13 @@ describe("getCacheEfficiency", () => {
   });
 });
 
-describe("getCostPer1k", () => {
-  it("calculates cost per 1k total tokens", () => {
+describe("getCostPerMTok", () => {
+  it("calculates cost per million total tokens", () => {
     const db = createFixtureDb();
-    const rows = getCostPer1k(db, ["s1", "s2"]);
+    const rows = getCostPerMTok(db, ["s1", "s2"]);
     expect(rows.length).toBeGreaterThan(0);
     for (const r of rows) {
-      expect(r.costPer1kTokens).toBeGreaterThan(0);
+      expect(r.costPerMTok).toBeGreaterThan(0);
     }
   });
 });
@@ -252,8 +252,8 @@ describe("empty sessionIds handling", () => {
     expect(getCacheEfficiency(createFixtureDb(), [])).toEqual([]);
   });
 
-  it("getCostPer1k with [] returns []", () => {
-    expect(getCostPer1k(createFixtureDb(), [])).toEqual([]);
+  it("getCostPerMTok with [] returns []", () => {
+    expect(getCostPerMTok(createFixtureDb(), [])).toEqual([]);
   });
 
   it("getAgentDelegation with [] returns []", () => {

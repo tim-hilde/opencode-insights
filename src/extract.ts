@@ -5,7 +5,7 @@ import {
   getAgentDelegation,
   getByAgentModel,
   getCacheEfficiency,
-  getCostPer1k,
+  getCostPerMTok,
   getPartsWithMessages,
   getSessionDateRange,
   getTokenTotals,
@@ -88,7 +88,7 @@ export function aggregateAll(db: Database, sessionIds: string[]): AggregatedStat
   const byAgentModel = getByAgentModel(db, sessionIds);
   const toolErrorRates = getToolErrorRates(db, sessionIds);
   const cacheEfficiency = getCacheEfficiency(db, sessionIds);
-  const costPer1k = getCostPer1k(db, sessionIds);
+  const costPerMTok = getCostPerMTok(db, sessionIds);
   const agentDelegation = getAgentDelegation(db, sessionIds);
 
   return {
@@ -104,7 +104,7 @@ export function aggregateAll(db: Database, sessionIds: string[]): AggregatedStat
     byAgentModel,
     toolErrorRates,
     cacheEfficiency,
-    costPer1k,
+    costPerMTok,
     agentDelegation,
   };
 }

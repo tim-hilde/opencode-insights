@@ -107,7 +107,7 @@ export interface AggregatedStats {
     errorRate: number;
   }>;
   cacheEfficiency: Array<{ model: string; cacheRatio: number }>;
-  costPer1k: Array<{ model: string; costPer1kTokens: number }>;
+  costPerMTok: Array<{ model: string; costPerMTok: number }>;
   agentDelegation: Array<{ parentAgent: string; childAgent: string; count: number }>;
 }
 

@@ -194,7 +194,7 @@ function buildRollupData(
     by_agent_model: stats.byAgentModel,
     tool_error_rates: stats.toolErrorRates,
     cache_efficiency: stats.cacheEfficiency,
-    cost_per_1k: stats.costPer1k,
+    cost_per_mtok: stats.costPerMTok,
     agent_delegation: stats.agentDelegation,
     outcome_counts: outcomeCounts,
     satisfaction_counts: satisfactionCounts,

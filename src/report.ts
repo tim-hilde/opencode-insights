@@ -30,6 +30,10 @@ function fmtCost(n: number): string {
   return `$${n.toFixed(4)}`;
 }
 
+function fmtCostMTok(n: number): string {
+  return `$${n.toFixed(2)}`;
+}
+
 function fmtDate(ms: number): string {
   return new Date(ms).toLocaleDateString("en-US", {
     month: "short",
@@ -244,19 +248,19 @@ function renderCostIntelligence(stats: AggregatedStats): string {
       )
     : "";
 
-  const costPer1kRows = stats.costPer1k.length
-    ? `<h3>Cost per 1k tokens</h3><div class="stats-grid">${stats.costPer1k
+  const costPerMTokRows = stats.costPerMTok.length
+    ? `<h3>Cost per MTok</h3><div class="stats-grid">${stats.costPerMTok
         .map(
           (r) => `
         <div class="stat">
           <div class="stat-label">${esc(r.model)}</div>
-          <div class="stat-value" style="font-size:16px">${esc(fmtCost(r.costPer1kTokens))}</div>
+          <div class="stat-value" style="font-size:16px">${esc(fmtCostMTok(r.costPerMTok))}</div>
         </div>`,
         )
         .join("")}</div>`
     : "";
 
-  return modelChart + cacheChart + costPer1kRows || unavailable();
+  return modelChart + cacheChart + costPerMTokRows || unavailable();
 }
 
 function renderInteractionAndFriction(interaction: unknown, friction: unknown): string {

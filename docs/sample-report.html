@@ -221,7 +221,7 @@ summary.section-header:focus-visible{outline:2px solid var(--clay);outline-offse
         <span class="tag">3 sessions</span>
       </div>
       <p style="margin:0 0 6px">Token-cost accounting and cache-efficiency analysis across models.</p>
-      <div><span class="tag">extract clean model names</span><span class="tag">cost per 1k tokens</span></div>
+      <div><span class="tag">extract clean model names</span><span class="tag">cost per MTok</span></div>
     </div></div>
     </details>
   </section>
@@ -283,14 +283,14 @@ summary.section-header:focus-visible{outline:2px solid var(--clay);outline-offse
       <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:55%;background:var(--olive)"></div></div>
       <span class="bar-value">55.0%</span>
     </div>
-  </div><h3>Cost per 1k tokens</h3><div class="stats-grid">
+  </div><h3>Cost per MTok</h3><div class="stats-grid">
         <div class="stat">
           <div class="stat-label">claude-opus-4</div>
-          <div class="stat-value" style="font-size:16px">$0.0180</div>
+          <div class="stat-value" style="font-size:16px">$18.00</div>
         </div>
         <div class="stat">
           <div class="stat-label">claude-sonnet-4-5</div>
-          <div class="stat-value" style="font-size:16px">$0.0036</div>
+          <div class="stat-value" style="font-size:16px">$3.60</div>
         </div></div></div>
     </details>
   </section>
@@ -601,14 +601,14 @@ summary.section-header:focus-visible{outline:2px solid var(--clay);outline-offse
         "cacheRatio": 0.55
       }
     ],
-    "costPer1k": [
+    "costPerMTok": [
       {
         "model": "claude-opus-4",
-        "costPer1kTokens": 0.018
+        "costPerMTok": 18
       },
       {
         "model": "claude-sonnet-4-5",
-        "costPer1kTokens": 0.0036
+        "costPerMTok": 3.6
       }
     ],
     "agentDelegation": [
@@ -667,7 +667,7 @@ summary.section-header:focus-visible{outline:2px solid var(--clay);outline-offse
           "session_count": 3,
           "example_goals": [
             "extract clean model names",
-            "cost per 1k tokens"
+            "cost per MTok"
           ]
         }
       ]

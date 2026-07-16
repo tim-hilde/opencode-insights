@@ -256,7 +256,7 @@ describe("runAggregateAnalysis", () => {
       byAgentModel: [],
       toolErrorRates: [],
       cacheEfficiency: [],
-      costPer1k: [],
+      costPerMTok: [],
       agentDelegation: [],
     };
 
@@ -305,7 +305,7 @@ describe("runAggregateAnalysis", () => {
       byAgentModel: [],
       toolErrorRates: [],
       cacheEfficiency: [],
-      costPer1k: [],
+      costPerMTok: [],
       agentDelegation: [],
     };
 
@@ -330,7 +330,7 @@ describe("runAggregateAnalysis", () => {
       byAgentModel: [],
       toolErrorRates: [],
       cacheEfficiency: [],
-      costPer1k: [],
+      costPerMTok: [],
       agentDelegation: [],
     };
 

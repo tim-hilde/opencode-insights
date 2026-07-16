@@ -18,7 +18,7 @@ function makeReportData(partial: Partial<ReportData> = {}): ReportData {
       byAgentModel: [],
       toolErrorRates: [],
       cacheEfficiency: [],
-      costPer1k: [],
+      costPerMTok: [],
       agentDelegation: [],
     },
     facets: new Map(),

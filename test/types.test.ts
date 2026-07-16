@@ -125,7 +125,7 @@ describe("type compatibility", () => {
       ],
       toolErrorRates: [{ tool: "bash", totalCalls: 30, errorCalls: 2, errorRate: 0.067 }],
       cacheEfficiency: [{ model: "claude-3-5-haiku", cacheRatio: 0.3 }],
-      costPer1k: [{ model: "claude-3-5-haiku", costPer1kTokens: 0.01 }],
+      costPerMTok: [{ model: "claude-3-5-haiku", costPerMTok: 10 }],
       agentDelegation: [{ parentAgent: "build", childAgent: "explore", count: 3 }],
     } satisfies AggregatedStats;
   });

@@ -289,12 +289,12 @@ export function getCacheEfficiency(db: Database, sessionIds: string[]): CacheEff
   }));
 }
 
-export interface CostPer1kRow {
+export interface CostPerMTokRow {
   model: string;
-  costPer1kTokens: number;
+  costPerMTok: number;
 }
 
-export function getCostPer1k(db: Database, sessionIds: string[]): CostPer1kRow[] {
+export function getCostPerMTok(db: Database, sessionIds: string[]): CostPerMTokRow[] {
   if (sessionIds.length === 0) return [];
   const rawRows = chunks(sessionIds).flatMap((chunk) => {
     const placeholders = chunk.map(() => "?").join(",");
@@ -322,7 +322,7 @@ export function getCostPer1k(db: Database, sessionIds: string[]): CostPer1kRow[]
     .filter(([, { tokens }]) => tokens > 0)
     .map(([model, { cost, tokens }]) => ({
       model,
-      costPer1kTokens: (cost / tokens) * 1000,
+      costPerMTok: (cost / tokens) * 1_000_000,
     }));
 }
 
