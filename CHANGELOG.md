@@ -1,3 +1,11 @@
+# [1.4.0](https://github.com/tim-hilde/opencode-insights/compare/v1.3.1...v1.4.0) (2026-07-16)
+
+
+### Features
+
+* display cost per MTok instead of per 1k tokens ([7a3f51f](https://github.com/tim-hilde/opencode-insights/commit/7a3f51fff2b3a3bb7e1b48d341cc3ca0ee48d57f)), closes [#1](https://github.com/tim-hilde/opencode-insights/issues/1)
+* retry LLM calls on API errors and JSON parse failures ([e7f4452](https://github.com/tim-hilde/opencode-insights/commit/e7f445201f6b99b989eb37f340f1a17caf171aa4))
+
 ## [1.3.1](https://github.com/tim-hilde/opencode-insights/compare/v1.3.0...v1.3.1) (2026-06-21)
 
 
