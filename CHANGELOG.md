@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/tim-hilde/opencode-insights/compare/v1.4.0...v1.4.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* prevent insights analysis from executing transcript content ([b823b0b](https://github.com/tim-hilde/opencode-insights/commit/b823b0b7eee27fc67fdac2f61218c207d52bccaf))
+
 # [1.4.0](https://github.com/tim-hilde/opencode-insights/compare/v1.3.1...v1.4.0) (2026-07-16)
 
 
