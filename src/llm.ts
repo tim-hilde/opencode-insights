@@ -1,3 +1,5 @@
+import { ANALYSIS_SYSTEM_PROMPT } from "./prompts.ts";
+
 export interface SessionPromptBody {
   model?: { providerID: string; modelID: string };
   agent?: string;
@@ -55,8 +57,13 @@ async function runLlmOnce(client: LlmClient, opts: LlmCallOptions): Promise<stri
       path: { id: sessionId },
       body: {
         model: opts.model,
-        tools: {},
-        system: opts.system,
+        // Hard-deny every tool: these throwaway sessions inherit the default (build)
+        // agent, and an empty object ({}) leaves all inherited tools ENABLED. "*": false
+        // is opencode's wildcard deny — the analysis call physically cannot run tools,
+        // load skills, or edit files even if transcript content tries to induce it.
+        tools: { "*": false },
+        // Default to the non-agentic analyzer framing; an explicit system still wins.
+        system: opts.system ?? ANALYSIS_SYSTEM_PROMPT,
         parts: [{ type: "text", text: opts.prompt }],
       },
     });

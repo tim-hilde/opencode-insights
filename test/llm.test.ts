@@ -1,6 +1,27 @@
 import { describe, expect, it } from "bun:test";
 import { JsonParseError, extractJson, mapLimit, runLlm, runLlmJson } from "../src/llm.ts";
-import type { LlmCallOptions, LlmClient } from "../src/llm.ts";
+import type { LlmCallOptions, LlmClient, SessionPromptBody } from "../src/llm.ts";
+import { ANALYSIS_SYSTEM_PROMPT } from "../src/prompts.ts";
+
+/** Mock client that records the body of the last session.prompt call. */
+function makeBodyCapturingClient() {
+  const captured: { body?: SessionPromptBody } = {};
+  return {
+    captured,
+    session: {
+      async create(_opts: { body: { title: string } }) {
+        return { data: { id: "capture-session" } };
+      },
+      async prompt(opts: { path: { id: string }; body: SessionPromptBody }) {
+        captured.body = opts.body;
+        return { data: { info: {}, parts: [{ type: "text", text: "ok" }] } };
+      },
+      async delete(_opts: { path: { id: string } }) {
+        return {};
+      },
+    } satisfies LlmClient["session"],
+  };
+}
 
 function makeMockClient(responseText: string, shouldFail = false) {
   let sessionId = "";
@@ -130,6 +151,42 @@ describe("runLlm", () => {
     };
     await runLlm(client, { ...baseOpts, system: "be concise" });
     expect(capturedSystem).toBe("be concise");
+  });
+});
+
+describe("runLlmOnce request body (tool lockdown + analyzer framing)", () => {
+  it("hard-disables all tools via wildcard deny", async () => {
+    const client = makeBodyCapturingClient();
+    await runLlm(client, baseOpts);
+    // An empty {} would leave inherited (build-agent) tools enabled — must be "*": false.
+    expect(client.captured.body?.tools).toEqual({ "*": false });
+  });
+
+  it("defaults to the analyzer system prompt when none is provided", async () => {
+    const client = makeBodyCapturingClient();
+    await runLlm(client, baseOpts);
+    expect(client.captured.body?.system).toBe(ANALYSIS_SYSTEM_PROMPT);
+  });
+
+  it("lets an explicit system prompt override the analyzer default", async () => {
+    const client = makeBodyCapturingClient();
+    await runLlm(client, { ...baseOpts, system: "be concise" });
+    expect(client.captured.body?.system).toBe("be concise");
+  });
+
+  it("applies the same tool lockdown + default framing on the runLlmJson path", async () => {
+    const client = makeBodyCapturingClient();
+    // biome-ignore lint/suspicious/noExplicitAny: test mock override to return JSON
+    (client.session as any).prompt = async (opts: {
+      path: { id: string };
+      body: SessionPromptBody;
+    }) => {
+      client.captured.body = opts.body;
+      return { data: { info: {}, parts: [{ type: "text", text: '{"ok":true}' }] } };
+    };
+    await runLlmJson(client, baseOpts);
+    expect(client.captured.body?.tools).toEqual({ "*": false });
+    expect(client.captured.body?.system).toBe(ANALYSIS_SYSTEM_PROMPT);
   });
 });
 
