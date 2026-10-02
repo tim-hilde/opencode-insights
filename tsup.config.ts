@@ -7,5 +7,5 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   bundle: true,
-  external: ["@opencode-ai/plugin", "@opencode-ai/sdk", "bun:sqlite"],
+  external: ["@opencode-ai/plugin", "@opencode-ai/sdk", "@opencode/plugin", "bun:sqlite"],
 });

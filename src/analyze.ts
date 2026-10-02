@@ -3,7 +3,7 @@ import type { FacetCache } from "./cache.ts";
 import { getSessionMeta } from "./db.ts";
 import { reconstructTranscript } from "./extract.ts";
 import { mapLimit, runLlm, runLlmJson } from "./llm.ts";
-import type { LlmClient } from "./llm.ts";
+import type { LlmBackend } from "./llm.ts";
 import {
   buildAgentPerformancePrompt,
   buildAtAGlancePrompt,
@@ -39,7 +39,7 @@ function retryOptsFrom(config: InsightsConfig): {
 }
 
 export async function prepareTranscript(
-  client: LlmClient,
+  client: LlmBackend,
   transcript: string,
   model: { providerID: string; modelID: string },
 ): Promise<string> {
@@ -96,7 +96,7 @@ function normalizeFacet(sessionId: string, raw: unknown): SessionFacet {
 
 export async function extractFacets(
   db: Database,
-  client: LlmClient,
+  client: LlmBackend,
   sessionIds: string[],
   config: InsightsConfig,
   cache: FacetCache,
@@ -219,7 +219,7 @@ export async function runAggregateAnalysis(
   facets: Map<string, SessionFacet>,
   stats: AggregatedStats,
   config: InsightsConfig,
-  client: LlmClient,
+  client: LlmBackend,
   onProgress?: (done: number, total: number) => void,
 ): Promise<Record<string, unknown>> {
   const rollupData = buildRollupData(facets, stats);
@@ -250,7 +250,7 @@ export async function generateAtAGlance(
   aggregates: Record<string, unknown>,
   stats: AggregatedStats,
   config: InsightsConfig,
-  client: LlmClient,
+  client: LlmBackend,
 ): Promise<Record<string, unknown>> {
   const statsSummary = {
     total_sessions: stats.totalSessions,

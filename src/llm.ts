@@ -9,6 +9,7 @@ export interface SessionPromptBody {
   noReply?: boolean;
 }
 
+/** OpenCode 1: each call runs in a throwaway session. */
 export interface LlmClient {
   session: {
     create(opts: { body: { title: string } }): Promise<unknown>;
@@ -16,6 +17,18 @@ export interface LlmClient {
     delete(opts: { path: { id: string } }): Promise<unknown>;
   };
 }
+
+/** OpenCode 2: a single text generation — no session, no tools. */
+export interface GenerateClient {
+  generate: {
+    text(input: {
+      prompt: string;
+      model?: { id: string; providerID: string } | null;
+    }): Promise<{ text: string }>;
+  };
+}
+
+export type LlmBackend = LlmClient | GenerateClient;
 
 export interface LlmCallOptions {
   model: { providerID: string; modelID: string };
@@ -32,7 +45,7 @@ const DEFAULT_RETRY_DELAY_MS = 500;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-export async function runLlm(client: LlmClient, opts: LlmCallOptions): Promise<string> {
+export async function runLlm(client: LlmBackend, opts: LlmCallOptions): Promise<string> {
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
   const baseDelay = opts.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
 
@@ -48,7 +61,16 @@ export async function runLlm(client: LlmClient, opts: LlmCallOptions): Promise<s
   throw lastError;
 }
 
-async function runLlmOnce(client: LlmClient, opts: LlmCallOptions): Promise<string> {
+async function runLlmOnce(client: LlmBackend, opts: LlmCallOptions): Promise<string> {
+  if ("generate" in client) {
+    // generate.text takes no separate system prompt, so the framing leads the prompt.
+    const { text } = await client.generate.text({
+      prompt: `${opts.system ?? ANALYSIS_SYSTEM_PROMPT}\n\n${opts.prompt}`,
+      model: { id: opts.model.modelID, providerID: opts.model.providerID },
+    });
+    return text;
+  }
+
   const createResult = await client.session.create({ body: { title: "[insights] analysis" } });
   const sessionId = (createResult as { data: { id: string } }).data.id;
 
@@ -123,7 +145,7 @@ export function extractJson(text: string): unknown {
  * both API errors and JSON parse failures (JsonParseError). Use this wherever
  * the caller needs structured JSON output — it covers the full call+parse cycle.
  */
-export async function runLlmJson(client: LlmClient, opts: LlmCallOptions): Promise<unknown> {
+export async function runLlmJson(client: LlmBackend, opts: LlmCallOptions): Promise<unknown> {
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
   const baseDelay = opts.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
 

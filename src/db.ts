@@ -40,8 +40,62 @@ const MODEL_NAME_SQL = `
     ELSE COALESCE(model, 'unknown')
   END`;
 
-export function openDb(path: string): Database {
-  return new Database(path, { readonly: true });
+/** Which OpenCode release wrote the sessions to analyze. */
+export type Store = "opencode1" | "opencode2";
+
+export function openDb(path: string, store: Store = "opencode1"): Database {
+  const db = new Database(path, { readonly: true });
+  if (store === "opencode2") exposeOpenCode2Tables(db);
+  return db;
+}
+
+/**
+ * OpenCode 2 keeps sessions in session_v2 and messages as typed JSON in
+ * session_message, with tool calls, text and reasoning in the assistant
+ * message's content array. Temp views with the OpenCode 1 names (`session`,
+ * `message`, `part`) shadow the main tables for this connection, so every
+ * query in this module reads OpenCode 2 history unchanged. Temp objects live
+ * outside the read-only main database.
+ */
+export function exposeOpenCode2Tables(db: Database): void {
+  db.run(`
+    CREATE TEMP VIEW session AS
+    SELECT id, parent_id, title, directory, agent, model, cost,
+      tokens_input, tokens_output, tokens_reasoning, tokens_cache_read, tokens_cache_write,
+      time_created, time_updated
+    FROM main.session_v2
+  `);
+  db.run(`
+    CREATE TEMP VIEW message AS
+    SELECT id, session_id, time_created,
+      json_object(
+        'role', type,
+        'agent', json_extract(data, '$.agent'),
+        'modelID', json_extract(data, '$.model.id')
+      ) AS data
+    FROM main.session_message
+    WHERE type IN ('user', 'assistant')
+  `);
+  // Part ids sort by message seq, then position in the content array.
+  db.run(`
+    CREATE TEMP VIEW part AS
+    SELECT printf('%012d:%06d', seq, 0) AS id, id AS message_id, session_id, time_created,
+      json_object('type', 'text', 'text', json_extract(data, '$.text')) AS data
+    FROM main.session_message
+    WHERE type = 'user'
+    UNION ALL
+    SELECT printf('%012d:%06d', m.seq, c.key) AS id, m.id AS message_id, m.session_id, m.time_created,
+      CASE json_extract(c.value, '$.type')
+        WHEN 'tool' THEN json_object(
+          'type', 'tool',
+          'tool', json_extract(c.value, '$.name'),
+          'state', json(json_extract(c.value, '$.state'))
+        )
+        ELSE json_object('type', json_extract(c.value, '$.type'), 'text', json_extract(c.value, '$.text'))
+      END AS data
+    FROM main.session_message m, json_each(m.data, '$.content') c
+    WHERE m.type = 'assistant'
+  `);
 }
 
 export function resolveDbPath(stateDir?: string): string {
@@ -377,15 +431,17 @@ export interface PartWithRole {
 }
 
 export function getPartsWithMessages(db: Database, sessionId: string): PartWithRole[] {
+  // The redundant p.session_id filter lets SQLite narrow the OpenCode 2 part view
+  // before the join; without it the view is built for the whole database (~minutes).
   return db
-    .query<PartWithRole, [string]>(`
+    .query<PartWithRole, [string, string]>(`
     SELECT p.data as partData, json_extract(m.data, '$.role') as role
     FROM part p
     JOIN message m ON p.message_id = m.id
-    WHERE m.session_id = ?
+    WHERE m.session_id = ? AND p.session_id = ?
     ORDER BY p.time_created ASC, p.id ASC
   `)
-    .all(sessionId);
+    .all(sessionId, sessionId);
 }
 
 export function getSessionDateRange(

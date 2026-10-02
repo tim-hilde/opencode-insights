@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { JsonParseError, extractJson, mapLimit, runLlm, runLlmJson } from "../src/llm.ts";
-import type { LlmCallOptions, LlmClient, SessionPromptBody } from "../src/llm.ts";
+import type { GenerateClient, LlmCallOptions, LlmClient, SessionPromptBody } from "../src/llm.ts";
 import { ANALYSIS_SYSTEM_PROMPT } from "../src/prompts.ts";
 
 /** Mock client that records the body of the last session.prompt call. */
@@ -361,5 +361,48 @@ describe("mapLimit", () => {
   it("mapLimit with limit=-5 still processes all items", async () => {
     const results = await mapLimit([1, 2], -5, async (x) => x + 1);
     expect(results).toEqual([2, 3]);
+  });
+});
+
+describe("OpenCode 2 generate backend", () => {
+  function makeGenerateClient(responses: string[]) {
+    const calls: Array<{ prompt: string; model?: { id: string; providerID: string } | null }> = [];
+    const client: GenerateClient = {
+      generate: {
+        async text(input) {
+          calls.push(input);
+          const next = responses.shift();
+          if (next === undefined) throw new Error("API error");
+          return { text: next };
+        },
+      },
+    };
+    return { client, calls };
+  }
+
+  it("makes one tool-less generation with the analyzer framing and model", async () => {
+    const { client, calls } = makeGenerateClient(["hello"]);
+    const result = await runLlm(client, {
+      model: { providerID: "anthropic", modelID: "claude-haiku-4-5" },
+      prompt: "analyze this",
+    });
+    expect(result).toBe("hello");
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.model).toEqual({ id: "claude-haiku-4-5", providerID: "anthropic" });
+    expect(calls[0]?.prompt.startsWith(ANALYSIS_SYSTEM_PROMPT)).toBe(true);
+    expect(calls[0]?.prompt.endsWith("analyze this")).toBe(true);
+  });
+
+  it("prefers an explicit system prompt", async () => {
+    const { client, calls } = makeGenerateClient(["ok"]);
+    await runLlm(client, { ...baseOpts, system: "Custom system" });
+    expect(calls[0]?.prompt.startsWith("Custom system")).toBe(true);
+  });
+
+  it("retries failed generations and parses JSON", async () => {
+    const { client, calls } = makeGenerateClient(["not json", '{"ok":true}']);
+    const result = await runLlmJson(client, { ...baseOpts, retryDelayMs: 1 });
+    expect(result).toEqual({ ok: true });
+    expect(calls).toHaveLength(2);
   });
 });

@@ -47,6 +47,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@opencode-ai/plugin": "^1.16.0",
+    "@opencode/plugin": "^2.0.22",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.1",

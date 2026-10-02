@@ -291,3 +291,43 @@ describe("runInsights", () => {
     }
   });
 });
+
+describe("runInsights on OpenCode 2", () => {
+  it("analyzes the OpenCode 2 store through generate.text", async () => {
+    const { createFixtureDbV2 } = await import("./fixture-v2.ts");
+    const tmpDir = mkdtempSync(join(tmpdir(), "insights-v2-"));
+    try {
+      const dbPath = join(tmpDir, "opencode.db");
+      createFixtureDbV2(Date.now(), dbPath).close();
+      const prompts: string[] = [];
+      const client = {
+        generate: {
+          async text(input: { prompt: string }) {
+            prompts.push(input.prompt);
+            const facet = input.prompt.includes("underlying_goal");
+            return { text: JSON.stringify(facet ? minimalFacet : minimalAtAGlance) };
+          },
+        },
+      };
+
+      const result = await runInsights(
+        { client, stateDir: tmpDir, dbPath, store: "opencode2" },
+        {
+          model: DEFAULT_MODEL,
+          days: 30,
+          force: false,
+          concurrency: 2,
+          maxSessions: 200,
+          projectOnly: false,
+          output: join(tmpDir, "out.html"),
+        },
+      );
+
+      expect(result.sessionCount).toBe(4);
+      expect(prompts.length).toBeGreaterThan(0);
+      expect(existsSync(result.reportPath)).toBe(true);
+    } finally {
+      rmSync(tmpDir, { recursive: true });
+    }
+  });
+});

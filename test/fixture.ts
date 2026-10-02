@@ -1,6 +1,6 @@
 import { Database } from "bun:sqlite";
 
-export function createFixtureDb(): Database {
+export function createFixtureDb(now = Date.now()): Database {
   const db = new Database(":memory:");
 
   db.run(`CREATE TABLE session (
@@ -41,7 +41,6 @@ export function createFixtureDb(): Database {
     data TEXT NOT NULL
   )`);
 
-  const now = Date.now();
   const day = 86400000;
 
   // s1: normal root session, build agent

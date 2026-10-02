@@ -2,17 +2,18 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { extractFacets, generateAtAGlance, runAggregateAnalysis } from "./analyze.ts";
 import { FACET_CACHE_VERSION, FacetCache } from "./cache.ts";
-import { openDb, resolveDbPath } from "./db.ts";
+import { type Store, openDb, resolveDbPath } from "./db.ts";
 import { aggregateAll, filterSessions } from "./extract.ts";
-import type { LlmClient } from "./llm.ts";
+import type { LlmBackend } from "./llm.ts";
 import { generateReport } from "./report.ts";
 import type { InsightsConfig } from "./types.ts";
 
 export interface OrchestratorDeps {
-  client: LlmClient;
+  client: LlmBackend;
   stateDir: string;
   dbPath?: string;
   projectDir?: string;
+  store?: Store;
 }
 
 export interface InsightsResult {
@@ -30,7 +31,7 @@ export async function runInsights(
   onProgress?: (phase: string, done?: number, total?: number) => void,
 ): Promise<InsightsResult> {
   const dbPath = deps.dbPath ?? resolveDbPath(deps.stateDir);
-  const db = openDb(dbPath);
+  const db = openDb(dbPath, deps.store);
   try {
     const sessionIds = filterSessions(db, {
       since: Date.now() - config.days * 86400000,
