@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/tim-hilde/opencode-insights/compare/v1.4.1...v1.5.0) (2026-10-02)
+
+
+### Features
+
+* support OpenCode 2 ([16f4549](https://github.com/tim-hilde/opencode-insights/commit/16f45494a6eb502f84c45655e9c79238d77788e4))
+
 ## [1.4.1](https://github.com/tim-hilde/opencode-insights/compare/v1.4.0...v1.4.1) (2026-07-23)
 
 
